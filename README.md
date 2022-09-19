@@ -2,7 +2,7 @@
 
 Julia implementation of Gomoku following AlphaZero MCTS
 
-* How to play
+# How to play
 
 Human against best trained
 
@@ -16,7 +16,7 @@ Best trained against best trained (self play)
 ./eval.sh --game_size 11 --player_1 best [--player_2 best]
 ```
 
-* How to train
+# How to train
 
 First, start training server
 
