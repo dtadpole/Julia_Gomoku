@@ -1,4 +1,4 @@
-# gomoku_julia
+# Julia Gomoku
 
 Julia implementation of Gomoku following AlphaZero MCTS
 
