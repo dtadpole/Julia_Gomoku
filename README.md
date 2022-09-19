@@ -18,7 +18,9 @@ Best trained model vs best trained model (machine self play)
 
 # How to train
 
-First, start the training server.  Optionally use 'model_cuda' parameters to specify GPU number.
+First, start the training server.
+
+Optionally use 'model_cuda' parameters to specify GPU number.
 
 ```
 ./train.sh --game_size 7 [--model_cuda 0]
@@ -26,7 +28,7 @@ First, start the training server.  Optionally use 'model_cuda' parameters to spe
 
 Next, start (multiple) inference game players.
 
-Start as many inference players as resource (GPU memory, CPU cores) allows.
+Start as many inference players as resource allows (GPU memory, CPU cores, etc).
 
 ```
 ./infer.sh --exp_server localhost [--model_cuda 0]
