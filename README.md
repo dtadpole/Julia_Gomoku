@@ -24,7 +24,7 @@ First, start the training server
 ./train.sh --game_size 7 [--model_cuda 0]
 ```
 
-Next, start (multiple) inference game players.  Start as many as GPU memory allows
+Next, start (multiple) inference game players.  Start as many inference players as resource (GPU memory, CPU cores) allows.
 
 ```
 ./infer.sh --exp_server localhost [--model_cuda 0]
