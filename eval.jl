@@ -162,14 +162,6 @@ function eval_playout(player1_function::Function, player2_function::Function; tu
 
     end
 
-    if game.score() > 0
-        @info "[ X ] wins !"
-    elseif game.score() < 0
-        @info "[ O ] wins !"
-    else
-        @info "Draw!"
-    end
-
     return game.score()
 
 end
