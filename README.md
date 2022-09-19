@@ -4,13 +4,13 @@ Julia implementation of Gomoku following AlphaZero MCTS
 
 # How to play
 
-Human against best trained (player 2 default is 'best')
+Human vs best trained model (player 2 default is 'best')
 
 ```
 ./eval.sh --game_size 11 --player_1 human [--player_2 best]
 ```
 
-Best trained against best trained (machine self play)
+Best trained model vs best trained model (machine self play)
 
 ```
 ./eval.sh --game_size 11 --player_1 best [--player_2 best]
