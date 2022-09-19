@@ -99,7 +99,7 @@ mutable struct Model
             Conv((3, 3), 1 => channels, relu; pad=(1, 1)),
             Conv((3, 3), channels => channels * 2, relu; pad=(1, 1)),
             Conv((3, 3), channels * 2 => channels * 4, relu; pad=(1, 1)),
-            # Conv((3, 3), channels * 4 => channels * 4, relu; pad=(1, 1)),
+            Conv((3, 3), channels * 4 => channels * 4, relu; pad=(1, 1)),
             Split(
                 Chain(
                     Conv((1, 1), channels * 4 => div(channels, 2), elu),
