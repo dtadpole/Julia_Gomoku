@@ -116,7 +116,9 @@ mutable struct MctsNode
                 end
                 pi, v = node._model.forward(reshape(state, (node.size(), node.size(), 1, 1)))
                 pi = revert_transform(reshape(Array(pi), (node.size(), node.size())), r) # revert transform
-                pi = pi .* node._game.available_actions()
+                # apply dirichlet noise to prior probabilities
+                dirichlet = node._dirichlet === nothing ? fill(0.0f0, node.size(), node.size()) : reshape(rand(node._dirichlet), node.size(), node.size())
+                pi = (pi .* (1 - node._noise_epsilon) .+ dirichlet .* node._noise_epsilon) .* node._game.available_actions()
                 v = Array(v)[1]
                 node._Pi_V = (pi, v)
             end
@@ -142,16 +144,17 @@ mutable struct MctsNode
         """Node Value : Q(S,a) + cpuct * P(S,a) * sqrt(sum(N(S,x) for x in siblings)) / (1 + N(S,a))"""
         node.nodeValue = () -> node._Q + node._cpuct * node._P * sqrt(node._parent._N) / (1 + node._N)
 
-        """Children Node Value : Q(S,a) + cpuct * (P(S,a) + _NOISE_) * sqrt(sum(N(S,x) for x in siblings)) / (1 + N(S,a))"""
+        """Children Node Value : Q(S,a) + cpuct * P(S,a) * sqrt(sum(N(S,x) for x in siblings)) / (1 + N(S,a))"""
         node.childrenValues = () -> begin
             if node._children === nothing
                 error("Cannot get children values - children not expanded")
             end
             values = fill(-Inf32, node.size(), node.size())
-            dirichlet = node._dirichlet === nothing ? fill(0.0f0, node.size(), node.size()) : reshape(rand(node._dirichlet), node.size(), node.size())
+            # dirichlet = node._dirichlet === nothing ? fill(0.0f0, node.size(), node.size()) : reshape(rand(node._dirichlet), node.size(), node.size())
             for i in 1:node.size(), j in 1:node.size()
                 if node._children[i, j] !== nothing
-                    values[i, j] = node._children[i, j]._Q + node._cpuct * (node._children[i, j]._P * (1 - node._noise_epsilon) + dirichlet[i, j] * node._noise_epsilon) * sqrt(node._N) / (1 + node._children[i, j]._N)
+                    # values[i, j] = node._children[i, j]._Q + node._cpuct * (node._children[i, j]._P * (1 - node._noise_epsilon) + dirichlet[i, j] * node._noise_epsilon) * sqrt(node._N) / (1 + node._children[i, j]._N)
+                    values[i, j] = node._children[i, j]._Q + node._cpuct * node._children[i, j]._P * sqrt(node._N) / (1 + node._children[i, j]._N)
                 end
             end
             return values

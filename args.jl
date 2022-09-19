@@ -69,7 +69,7 @@ function parse_commandline()
         "--mcts_noise_epsilon"
         help = "mcts noise epsilon"
         arg_type = Float32
-        default = Float32(0.2) # AlphaZero: 0.25
+        default = Float32(0.25) # AlphaZero: 0.25
 
         "--train_batch_size"
         help = "train batch size"
