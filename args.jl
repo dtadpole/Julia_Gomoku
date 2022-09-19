@@ -54,7 +54,7 @@ function parse_commandline()
         "--mcts_gamma"
         help = "mcts gamma"
         arg_type = Float32
-        default = Float32(0.98)
+        default = Float32(0.99)
 
         "--mcts_temperature"
         help = "mcts temperature"
