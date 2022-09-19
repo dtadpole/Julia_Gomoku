@@ -119,7 +119,7 @@ function parse_commandline()
         "--adamw_weight_decay"
         help = "adamw weight decay"
         arg_type = Float32
-        default = Float32(0.001)
+        default = Float32(0.0005)
 
         "--exp_min"
         help = "experience min"
