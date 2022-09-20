@@ -80,6 +80,7 @@ mutable struct Train
                 @info "[$(id)] Loaded Model [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
             end
             push!(model_list, model)
+	    @info "[$(id)] Model" model
 
             # initialize optimizer
             opt = AdamW(args["learning_rate"], (args["adamw_beta1"], args["adamw_beta2"]), args["adamw_weight_decay"])
