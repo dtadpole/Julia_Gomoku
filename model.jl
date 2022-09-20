@@ -139,7 +139,7 @@ mutable struct Model
             # model forward
             p_, v_ = m.forward(x)
             entropy() = -sum(p_ .* log.(p_), dims=[1, 2])
-            reg() = sum(x -> sum(x.^2), Flux.params(m._model))
+            reg() = mean(x -> mean(x.^2), Flux.params(m._model))
             loss_pi = mean(-sum(pi .* log.(p_), dims=[1, 2]))
             loss_v = mean((v .- v_) .^ 2)
             loss_entropy = mean(entropy())

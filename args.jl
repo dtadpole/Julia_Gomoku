@@ -34,7 +34,8 @@ function parse_commandline()
         "--model_loss_coef_theta"
         help = "model loss theta coefficient"
         arg_type = Float32
-        default = Float32(0.0001)
+        # default = Float32(0.00002)
+        default = Float32(2.0)
 
         "--mcts_n_multiplier"
         help = "mcts play count multiplier"
@@ -119,7 +120,7 @@ function parse_commandline()
         "--adamw_weight_decay"
         help = "adamw weight decay"
         arg_type = Float32
-        default = Float32(0.0005)
+        default = Float32(0.0002)
 
         "--exp_min"
         help = "experience min"
