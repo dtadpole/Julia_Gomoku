@@ -58,7 +58,7 @@ function download_model(id::Int; prev_model=nothing)
     # testmode!(model)
 
     params_size = sum([length(l) for l in Flux.params(model._model)])
-    @info "[$(id)] Loaded model [$(url)] : [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
+    @info "[$(id)] Loaded model [$(url)] : [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]" model
 
     return _id, model
 

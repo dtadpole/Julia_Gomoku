@@ -70,7 +70,7 @@ mutable struct Train
             # initialize model
             model = Model(args["game_size"], channels=args["model_channels"])
             params_size = sum([length(l) for l in Flux.params(model._model)])
-            @info "[$(id)] Initialize Model [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
+            @info "[$(id)] Initialize Model [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]" model
             # load model if exists
             model_filename = t.modelPath(id)
             if isfile(model_filename)
@@ -80,7 +80,6 @@ mutable struct Train
                 @info "[$(id)] Loaded Model [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
             end
             push!(model_list, model)
-	    @info "[$(id)] Model" model
 
             # initialize optimizer
             opt = AdamW(args["learning_rate"], (args["adamw_beta1"], args["adamw_beta2"]), args["adamw_weight_decay"])
@@ -276,6 +275,11 @@ mutable struct Train
 
                 for id in id_list
 
+		    # check trained batch count, exit if exceeded maximum
+		    if t._experiences.trainedBatch(id) > args["exp_trained_batch"]
+		        exit(0)
+		    end
+
                     # t._experiences.playGame() # do not play game in train server.  let the inference servers play games
 
                     if (t._experiences.trainedBatch(id) * args["train_trim_ratio"] + BATCH_NUM * TRAIN_EPOCHS) * BATCH_SIZE < t._experiences.totalCount(id) * TRAIN_EPOCHS
@@ -331,12 +335,12 @@ mutable struct Train
 
                     end
 
-                end
+                    # GC & reclaim CUDA memory
+                    GC.gc(true)
+                    if args["model_cuda"] >= 0
+                        CUDA.reclaim()
+                    end
 
-                # GC & reclaim CUDA memory
-                GC.gc(true)
-                if args["model_cuda"] >= 0
-                    CUDA.reclaim()
                 end
 
                 sleep_count += 1
