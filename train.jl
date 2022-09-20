@@ -70,14 +70,14 @@ mutable struct Train
             # initialize model
             model = Model(args["game_size"], channels=args["model_channels"])
             params_size = sum([length(l) for l in Flux.params(model._model)])
-            @info "[$(id)] Initialize Model [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]" model
+            @info "[$(id)] Initialize Model [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
             # load model if exists
             model_filename = t.modelPath(id)
             if isfile(model_filename)
                 @info repeat("-", 50)
                 @info "[$(id)] Loading Model from [$(model_filename)] ..."
                 model.load(model_filename)
-                @info "[$(id)] Loaded Model [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
+                @info "[$(id)] Loaded Model [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]" model._model
             end
             push!(model_list, model)
 
