@@ -34,7 +34,7 @@ function parse_commandline()
         "--model_loss_coef_theta"
         help = "model loss theta coefficient"
         arg_type = Float32
-        default = Float32(0.001)
+        default = Float32(0.0001)
 
         "--mcts_n_multiplier"
         help = "mcts play count multiplier"

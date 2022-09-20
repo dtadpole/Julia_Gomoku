@@ -212,9 +212,9 @@ mutable struct Train
             pi_epoch = round(mean(loss_pi_list), digits=2)
             v_epoch = round(mean(loss_v_list), digits=3)
             entropy_epoch = round(mean(loss_entropy_list), digits=2)
-            reg_epoch = round(mean(loss_eng_list), digits=2)
+            reg_epoch = round(mean(loss_reg_list), digits=1)
 
-            @info "[$(id)] Training epoch [$(epoch)] [L : $(loss_epoch) = $(pi_epoch),π + $(v_epoch),v - $(args["model_loss_coef_entropy"]) * $(entropy_epoch),H + $(args["model_loss_coef_theta"]) * $(reg_epoch),θ]"
+            @info "[$(id)] Training epoch [$(epoch)] [$(loss_epoch),L = $(pi_epoch),π + $(v_epoch),v - $(args["model_loss_coef_entropy"]) * $(entropy_epoch),H + $(args["model_loss_coef_theta"]) * $(reg_epoch),θ]"
 
             # check for kl divergence
             kl_epoch_mean = mean(kl_list)
@@ -253,7 +253,7 @@ mutable struct Train
             # save optimizer
             opt_ = t._experiences.opt(id)
             opt_filename = t.optPath(id)
-            @info "[$(id)] Save optimizer [$(opt_filename)] : [η=$(round(opt_.eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
+            @info "[$(id)] Save optimizer [$(opt_filename)] : [η=$(round(opt_.eta, digits=4)), β=$(round.(opt_.beta, digits=4)), δ=$(opt_.epsilon)]"
             backup_file(opt_filename)
             save_optimizer(opt_filename, opt_)
 
