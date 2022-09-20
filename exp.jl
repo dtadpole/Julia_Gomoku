@@ -14,7 +14,7 @@ mutable struct Experiences
 
     # attributes
     _model_list::Vector{Model}
-    _opt_list::Vector{Flux.Optimise.Optimiser}
+    _opt_list::Vector{Flux.Optimise.AbstractOptimiser}
     _exp_list::Vector{Vector{Tuple{Matrix{Float32},Matrix{Float32},Float32}}}
     _total_count::Vector{Int}
     _trained_batches::Vector{Int}
@@ -36,7 +36,7 @@ mutable struct Experiences
     opt::Function
 
     # constructor
-    function Experiences(models::Vector{Model}, opts::Vector{Flux.Optimise.Optimiser})
+    function Experiences(models::Vector{Model}, opts::Vector{Flux.Optimise.AbstractOptimiser})
 
         global _WEIGHTS
 

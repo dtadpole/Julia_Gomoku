@@ -3,7 +3,7 @@ include("./exp.jl")
 using Unzip
 # unzip(a) = map(x -> getfield.(a, x), fieldnames(eltype(a)))
 
-function save_optimizer(path::String, opt::Flux.Optimise.Optimiser)
+function save_optimizer(path::String, opt::Flux.Optimise.AbstractOptimiser)
     open(path, "w") do io
         serialize(io, opt)
     end
@@ -63,7 +63,7 @@ mutable struct Train
 
         # initialize models, optimizers
         model_list = Vector{Model}()
-        opt_list = Vector{Flux.Optimise.Optimiser}()
+        opt_list = Vector{Flux.Optimise.AbstractOptimiser}()
 
         for id in id_list
 
@@ -82,15 +82,16 @@ mutable struct Train
             push!(model_list, model)
 
             # initialize optimizer
-            opt = AdamW(args["learning_rate"], (args["adamw_beta1"], args["adamw_beta2"]), args["adamw_weight_decay"])
-            @info "[$(id)] Initialize Optimizer [η=$(round(opt[1].eta, digits=4)), β=$(round.(opt[1].beta, digits=4)), δ=$(opt[2].wd)]"
+            # opt = AdamW(args["learning_rate"], (args["adamw_beta1"], args["adamw_beta2"]), args["adamw_weight_decay"])
+            opt = Adam(args["learning_rate"])
+            @info "[$(id)] Initialize Optimizer [η=$(round(opt.eta, digits=4)), β=$(round.(opt.beta, digits=4)), δ=$(opt.epsilon)]"
             # load optimizer if exists
             opt_filename = t.optPath(id)
             if isfile(opt_filename)
                 @info repeat("-", 50)
                 @info "[$(id)] Loading Optimizer from [$(opt_filename)] ..."
                 opt = load_optimizer(opt_filename)
-                @info "[$(id)] Loaded Optimizer [η=$(round(opt[1].eta, digits=4)), β=$(round.(opt[1].beta, digits=4)), δ=$(opt[2].wd)]"
+                @info "[$(id)] Loaded Optimizer [η=$(round(opt.eta, digits=4)), β=$(round.(opt.beta, digits=4)), δ=$(opt.epsilon)]"
             end
             # move to gpu
             if args["model_cuda"] >= 0
@@ -144,6 +145,7 @@ mutable struct Train
             loss_pi_list = Vector{Float32}()
             loss_v_list = Vector{Float32}()
             loss_entropy_list = Vector{Float32}()
+            loss_reg_list = Vector{Float32}()
 
             for batch in 1:BATCH_NUM
 
@@ -176,7 +178,7 @@ mutable struct Train
                 end
 
                 # calculate new policy
-                new_loss, loss_pi, loss_v, loss_entropy, new_pi, new_v = t._experiences.model(id).loss(state, pa, v)
+                new_loss, new_pi, new_vi, loss_pi, loss_v, loss_entropy, loss_reg = t._experiences.model(id).loss(state, pa, v)
 
                 # @info "new sizes" size(new_loss) size(new_pi) size(new_v)
 
@@ -185,6 +187,7 @@ mutable struct Train
                 push!(loss_pi_list, loss_pi |> cpu)
                 push!(loss_v_list, loss_v |> cpu)
                 push!(loss_entropy_list, loss_entropy |> cpu)
+                push!(loss_reg_list, loss_reg |> cpu)
 
                 # extract prev policy
                 # prev_pi = prev_policy[:, :, (batch-1)*BATCH_SIZE+1:batch*BATCH_SIZE]
@@ -209,24 +212,25 @@ mutable struct Train
             pi_epoch = round(mean(loss_pi_list), digits=2)
             v_epoch = round(mean(loss_v_list), digits=3)
             entropy_epoch = round(mean(loss_entropy_list), digits=2)
+            reg_epoch = round(mean(loss_eng_list), digits=2)
 
-            @info "[$(id)] Training epoch [$(epoch)] updated [loss : $(loss_epoch) = $(pi_epoch),π + $(v_epoch),v - $(args["model_loss_coef_entropy"]) * $(entropy_epoch),H]"
+            @info "[$(id)] Training epoch [$(epoch)] [L : $(loss_epoch) = $(pi_epoch),π + $(v_epoch),v - $(args["model_loss_coef_entropy"]) * $(entropy_epoch),H + $(args["model_loss_coef_theta"]) * $(reg_epoch),θ]"
 
             # check for kl divergence
             kl_epoch_mean = mean(kl_list)
 
             if kl_epoch_mean > args["train_kl_target"] * 2.0
-                new_learning_rate = max(t._experiences.opt(id)[1].eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
+                new_learning_rate = max(t._experiences.opt(id).eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
                 @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) > $(args["train_kl_target"]) * 2.0] ... reducing learning rate to [$(round(new_learning_rate, digits=4))] ."
                 # update learning rate
-                t._experiences.opt(id)[1].eta = new_learning_rate
+                t._experiences.opt(id).eta = new_learning_rate
             elseif kl_epoch_mean < args["train_kl_target"] / 2.0
-                new_learning_rate = min(t._experiences.opt(id)[1].eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
+                new_learning_rate = min(t._experiences.opt(id).eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
                 @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) < $(args["train_kl_target"]) / 2.0] ... increasing learning rate to [$(round(new_learning_rate, digits=4))] ."
                 # update learning rate
-                t._experiences.opt(id)[1].eta = new_learning_rate
+                t._experiences.opt(id).eta = new_learning_rate
             else
-                learning_rate = t._experiences.opt(id)[1].eta
+                learning_rate = t._experiences.opt(id).eta
                 @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) within range] ... keeping learning rate as [$(round(learning_rate, digits=4))] ."
             end
 
@@ -249,7 +253,7 @@ mutable struct Train
             # save optimizer
             opt_ = t._experiences.opt(id)
             opt_filename = t.optPath(id)
-            @info "[$(id)] Save optimizer [$(opt_filename)] : [η=$(round(opt_[1].eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
+            @info "[$(id)] Save optimizer [$(opt_filename)] : [η=$(round(opt_.eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
             backup_file(opt_filename)
             save_optimizer(opt_filename, opt_)
 
