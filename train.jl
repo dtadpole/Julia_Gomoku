@@ -82,16 +82,16 @@ mutable struct Train
             push!(model_list, model)
 
             # initialize optimizer
-            # opt = AdamW(args["learning_rate"], (args["adamw_beta1"], args["adamw_beta2"]), args["adamw_weight_decay"])
-            opt = Adam(args["learning_rate"])
-            @info "[$(id)] Initialize Optimizer [η=$(round(opt.eta, digits=4)), β=$(round.(opt.beta, digits=4)), δ=$(opt.epsilon)]"
+            opt = AdamW(args["learning_rate"], (args["adamw_beta1"], args["adamw_beta2"]), args["adamw_weight_decay"])
+            # opt = Adam(args["learning_rate"])
+            @info "[$(id)] Initialize Optimizer [η=$(round(opt[1].eta, digits=4)), β=$(round.(opt[1].beta, digits=4)), δ=$(opt[2].wd)]"
             # load optimizer if exists
             opt_filename = t.optPath(id)
             if isfile(opt_filename)
                 @info repeat("-", 50)
                 @info "[$(id)] Loading Optimizer from [$(opt_filename)] ..."
                 opt = load_optimizer(opt_filename)
-                @info "[$(id)] Loaded Optimizer [η=$(round(opt.eta, digits=4)), β=$(round.(opt.beta, digits=4)), δ=$(opt.epsilon)]"
+                @info "[$(id)] Loaded Optimizer [η=$(round(opt[1].eta, digits=4)), β=$(round.(opt[1].beta, digits=4)), δ=$(opt[2].wd)]"
             end
             # move to gpu
             if args["model_cuda"] >= 0
@@ -220,17 +220,17 @@ mutable struct Train
             kl_epoch_mean = mean(kl_list)
 
             if kl_epoch_mean > args["train_kl_target"] * 2.0
-                new_learning_rate = max(t._experiences.opt(id).eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
+                new_learning_rate = max(t._experiences.opt(id)[1].eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
                 @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) > $(args["train_kl_target"]) * 2.0] ... reducing learning rate to [$(round(new_learning_rate, digits=4))] ."
                 # update learning rate
-                t._experiences.opt(id).eta = new_learning_rate
+                t._experiences.opt(id)[1].eta = new_learning_rate
             elseif kl_epoch_mean < args["train_kl_target"] / 2.0
-                new_learning_rate = min(t._experiences.opt(id).eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
+                new_learning_rate = min(t._experiences.opt(id)[1].eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
                 @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) < $(args["train_kl_target"]) / 2.0] ... increasing learning rate to [$(round(new_learning_rate, digits=4))] ."
                 # update learning rate
-                t._experiences.opt(id).eta = new_learning_rate
+                t._experiences.opt(id)[1].eta = new_learning_rate
             else
-                learning_rate = t._experiences.opt(id).eta
+                learning_rate = t._experiences.opt(id)[1].eta
                 @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) within range] ... keeping learning rate as [$(round(learning_rate, digits=4))] ."
             end
 
@@ -253,7 +253,7 @@ mutable struct Train
             # save optimizer
             opt_ = t._experiences.opt(id)
             opt_filename = t.optPath(id)
-            @info "[$(id)] Save optimizer [$(opt_filename)] : [η=$(round(opt_.eta, digits=4)), β=$(round.(opt_.beta, digits=4)), δ=$(opt_.epsilon)]"
+            @info "[$(id)] Save optimizer [$(opt_filename)] : [η=$(round(opt_[1].eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
             backup_file(opt_filename)
             save_optimizer(opt_filename, opt_)
 

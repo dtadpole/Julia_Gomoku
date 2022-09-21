@@ -29,13 +29,12 @@ function parse_commandline()
         "--model_loss_coef_entropy"
         help = "model loss entropy coefficient"
         arg_type = Float32
-        default = Float32(0.4)
+        default = Float32(0.6)
 
         "--model_loss_coef_theta"
         help = "model loss theta coefficient"
         arg_type = Float32
-        # default = Float32(0.00002)
-        default = Float32(2.0)
+        default = Float32(1.0)
 
         "--mcts_n_multiplier"
         help = "mcts play count multiplier"
