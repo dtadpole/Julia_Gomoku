@@ -29,7 +29,7 @@ function parse_commandline()
         "--model_loss_coef_entropy"
         help = "model loss entropy coefficient"
         arg_type = Float32
-        default = Float32(0.6)
+        default = Float32(0.5)
 
         "--model_loss_coef_theta"
         help = "model loss theta coefficient"
@@ -119,7 +119,7 @@ function parse_commandline()
         "--adamw_weight_decay"
         help = "adamw weight decay"
         arg_type = Float32
-        default = Float32(0.0002)
+        default = Float32(0.0003)
 
         "--exp_min"
         help = "experience min"
