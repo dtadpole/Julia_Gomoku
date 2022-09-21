@@ -214,19 +214,19 @@ mutable struct Train
             entropy_epoch = round(mean(loss_entropy_list), digits=2)
             reg_epoch = round(mean(loss_reg_list), digits=4)
 
-            @info "[$(id)] Training epoch [$(epoch)] [$(loss_epoch),L = $(pi_epoch),π + $(v_epoch),ν - $(args["model_loss_coef_entropy"]) * $(entropy_epoch),H + $(args["model_loss_coef_theta"]) * $(reg_epoch),θ]"
+            @info "[$(id)] Training epoch [$(epoch)] [$(loss_epoch),L = $(pi_epoch),π + $(v_epoch),ν - $(args["model_loss_coef_entropy"]) × $(entropy_epoch),H + $(args["model_loss_coef_theta"]) × $(reg_epoch),θ]"
 
             # check for kl divergence
             kl_epoch_mean = mean(kl_list)
 
             if kl_epoch_mean > args["train_kl_target"] * 2.0
                 new_learning_rate = max(t._experiences.opt(id)[1].eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
-                @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) > $(args["train_kl_target"]) * 2.0] ... reducing learning rate to [$(round(new_learning_rate, digits=4))] ."
+                @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) > $(args["train_kl_target"]) × 2.0] ... reducing learning rate to [$(round(new_learning_rate, digits=4))] ."
                 # update learning rate
                 t._experiences.opt(id)[1].eta = new_learning_rate
             elseif kl_epoch_mean < args["train_kl_target"] / 2.0
                 new_learning_rate = min(t._experiences.opt(id)[1].eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
-                @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) < $(args["train_kl_target"]) / 2.0] ... increasing learning rate to [$(round(new_learning_rate, digits=4))] ."
+                @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) < $(args["train_kl_target"]) ÷ 2.0] ... increasing learning rate to [$(round(new_learning_rate, digits=4))] ."
                 # update learning rate
                 t._experiences.opt(id)[1].eta = new_learning_rate
             else

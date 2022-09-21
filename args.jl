@@ -29,7 +29,7 @@ function parse_commandline()
         "--model_loss_coef_entropy"
         help = "model loss entropy coefficient"
         arg_type = Float32
-        default = Float32(0.5)
+        default = Float32(0.6)
 
         "--model_loss_coef_theta"
         help = "model loss theta coefficient"
@@ -104,7 +104,7 @@ function parse_commandline()
         "--learning_rate_range"
         help = "learning rate range"
         arg_type = Float32
-        default = Float32(5.0)
+        default = Float32(10.0)
 
         "--adamw_beta1"
         help = "adamw beta1"
