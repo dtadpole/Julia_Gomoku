@@ -102,7 +102,7 @@ mutable struct Train
                 @info repeat("-", 50)
                 @info "Loading Experiences from [$(exp_path)] ..."
                 t._exps.load(exp_path)
-                @info "Loaded Experiences [len=$(t._exps.length(id)), total=$(t._exps.totalCount(id)), trained=$(t._exps.trainedBatch(id))]"
+                @info "Loaded Experiences [len=$(t._exps.length()), total=$(t._exps.totalCount()), trained=$(t._exps.trainedBatch())]"
             end
 
             # start experiences server
