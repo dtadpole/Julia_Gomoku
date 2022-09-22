@@ -146,7 +146,7 @@ mutable struct Train
                 end
 
                 # calculate previous policy
-                prev_pi, _ = t._exps.model().forward(state)
+                # prev_pi, _ = t._exps.model().forward(state)
 
                 # convert from visit count to distribution
                 pa = softmax(log.(pi .+ 1e-8), dims=[1, 2])
@@ -158,10 +158,10 @@ mutable struct Train
                 end
 
                 # calculate gradients
-                grads = back((1.0f0, 0.0f0, 0.0f0, 0.0f0))
+                grads = back((1.0f0, nothing, nothing, nothing, nothing, nothing))
 
                 # get loss components
-                new_loss, loss_pi, loss_v, loss_entropy = loss_tuple
+                new_loss, loss_pi, loss_v, loss_entropy, prev_pi, _ = loss_tuple
 
                 # train
                 Flux.update!(t._exps.opt(), params, grads)
@@ -189,7 +189,7 @@ mutable struct Train
                 # calculate KL divergence
                 kl_sum = sum(prev_pi .* (log.(prev_pi) .- log.(new_pi)), dims=[1, 2])
                 kl = reshape(kl_sum, BATCH_SIZE)
-                kl_batch_mean = round(mean(kl), digits=4)
+                kl_batch_mean = round(mean(kl), digits=5)
 
                 next!(progress_tracker; showvalues=[
                     (:loss, msg),
@@ -275,7 +275,7 @@ mutable struct Train
             @info repeat("-", 50)
 
             # create a new player with average active player rating
-            player_id = t.elo().newPlayer(init_rating=e.elo().activeAvgRating())
+            player_id = t.elo().newPlayer(init_rating=t.elo().activeAvgRating())
 
             # save model
             model_ = t._exps.model

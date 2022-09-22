@@ -136,7 +136,7 @@ mutable struct Model
             # loss_reg = mean(reg(Flux.params(m._model)))
             # loss = loss_pi + loss_v - (args["model_loss_coef_entropy"] * loss_entropy) + args["model_loss_coef_theta"] * loss_reg
             loss = loss_pi + loss_v - (args["model_loss_coef_entropy"] * loss_entropy)
-            return loss, loss_pi, loss_v, loss_entropy # , p_, v_
+            return loss, loss_pi, loss_v, loss_entropy, p_, v_
         end
 
         """Save"""
