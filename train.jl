@@ -86,9 +86,13 @@ mutable struct Train
                 opt_ = opt_ |> gpu
             end
 
+            # initialize elo
+            elo_ = Elo()
+            id_ = elo_.newPlayer()
+            elo_.makeActive(id_)
+
             # initialize experiences
-            t._exps = Experiences(Elo(), model_, opt_)
-            id_ = t._exps.elo().newPlayer()
+            t._exps = Experiences(elo_, model_, opt_)
             @info "Initialize Experiences [Player ID = $(id_)]"
 
             # load experiences if exists
