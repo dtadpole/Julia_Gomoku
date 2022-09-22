@@ -197,6 +197,16 @@ function parse_commandline()
         range_tester = (x -> x >= 10)
         default = 10
 
+        "--elo_below_avg_cutoff"
+        help = "elo below average cutoff"
+        arg_type = Int
+        default = 120
+
+        "--elo_k_value"
+        help = "elo k value"
+        arg_type = Float32
+        default = 16.0f0
+
     end
 
     return parse_args(s)
