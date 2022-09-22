@@ -166,7 +166,8 @@ mutable struct Experiences
                 else
                     model_path = model_filename(id)
                     open(model_path, "r") do io
-                        return HTTP.Response(200, Dict("Content-Type" => "application/octet-stream"), body=io)
+                        data = read(io)
+                        return HTTP.Response(200, Dict("Content-Type" => "application/octet-stream"), body=data)
                     end
                 end
             end)
