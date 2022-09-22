@@ -28,3 +28,4 @@ model_*.curr
 opt_*.curr
 exp_*.curr
 *.bak
+elo_*.yml
