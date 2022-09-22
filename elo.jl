@@ -76,7 +76,7 @@ mutable struct Elo
         """Player info"""
         e.playerInfo = () -> begin
             dict = Dict(
-                "avg" => e.activeAvgRating(),
+                "average" => e.activeAvgRating(),
                 "active" => map(x -> [x, e._ratings[x]], collect(e._activePlayers)),
                 "candidate" => map(x -> [x, e._ratings[x]], collect(e._candidatePlayers)),
             )
