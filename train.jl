@@ -283,7 +283,7 @@ mutable struct Train
             player_id = t.elo().newPlayer(init_rating=t.elo().activeAvgRating())
 
             # save model
-            model_ = t._exps.model
+            model_ = t._exps.model()
             params_size = sum([length(l) for l in Flux.params(model_._model)])
             model_filepath = model_filename(player_id)
             @info "Save model [$(model_filepath)] : [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]"
