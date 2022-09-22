@@ -160,7 +160,7 @@ mutable struct Experiences
             HTTP.register!(router, "GET", "/model/{id}", (req) -> begin
                 id = parse(Int, HTTP.getparams(req)["id"])
                 if id == 1 # return in memory model for id = 1
-                    serialize(io, (e._model_list[id].size(), e._model_list[id].channels(), e._model_list[id]._model |> cpu))
+                    serialize(io, (e._model.size(), e._model.channels(), e._model._model |> cpu))
                     return HTTP.Response(200, Dict("Content-Type" => "application/octet-stream"), body=io.data)
                 else
                     model_path = model_filename(id)
