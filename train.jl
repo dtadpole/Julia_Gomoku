@@ -286,7 +286,7 @@ mutable struct Train
             model_ = t._exps.model()
             params_size = sum([length(l) for l in Flux.params(model_._model)])
             model_filepath = model_filename(player_id)
-            @info "Save model [$(model_filepath)] : [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]"
+            @info "Save model [$(player_id)] [$(model_filepath)] : [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]"
             model_.save(model_filepath)
 
             # save optimizer
