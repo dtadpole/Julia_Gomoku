@@ -264,6 +264,7 @@ mutable struct Train
                         if t.elo().candidateSize() > 0
                             candidate_id = t.elo().randCandidate()
                             t.elo().makeActive(candidate_id)
+                            t.elo().clearCandidates() # clear all candidates after adding one to active
                         end
                     end
                 end
