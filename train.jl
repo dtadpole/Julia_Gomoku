@@ -269,8 +269,7 @@ mutable struct Train
 
                 # check if any active player with rating < 1800, or is 120 elo below avg
                 for (id, rating) in active_pool
-                    if rating < t.elo().rating(1) - args["elo_below_main_cutoff"] ||
-                       rating < active_avg_rating - args["elo_below_avg_cutoff"]
+                    if rating < t.elo().rating(1) - args["elo_below_main_cutoff"] || rating < active_avg_rating - args["elo_below_avg_cutoff"]
                         if id != 1 # do not remove the first player
                             t.elo().makeInactive(id)
                             # add from candidate pool
