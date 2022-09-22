@@ -130,7 +130,7 @@ mutable struct Train
             # @info "$(time() - start_time)s to data_loader"
 
             # start_time = time()
-            progress_tracker = Progress(length(data_loader), dt=0.1, desc="Training epoch $(epoch): ")
+            progress_tracker = Progress(length(data_loader), dt=0.2, desc="Training epoch $(epoch): ")
 
             # keeps a list of kl divergence
             kl_list = Vector{Float32}()
