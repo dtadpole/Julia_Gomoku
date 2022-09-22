@@ -90,7 +90,7 @@ mutable struct Train
             # initialize elo
             elo_ = Elo()
             id_ = elo_.newPlayer()
-            elo_.makeActive(id_) # allow self-play
+            elo_.makeActive(id_) # allow main agent self-play
 
             # initialize experiences
             t._exps = Experiences(elo_, model_, opt_)
