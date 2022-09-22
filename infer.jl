@@ -1,5 +1,7 @@
 include("./mcts.jl")
 
+using JSON
+
 """infer playouts"""
 function infer_playouts()
 
@@ -25,7 +27,7 @@ function infer_playouts()
             end
 
             io = IOBuffer(r.body)
-            id_1, id_2 = deserialize(io)
+            id_1, id_2 = JSON.parse(io)
             @info "Requested match [$(url)] : [$(r.status)] [$(id_1) vs $(id_2)]"
 
             model_1 = download_model(id_1)
