@@ -102,7 +102,7 @@ mutable struct Experiences
         e.sampleExperience = (sample_size::Int) -> begin
             if args["exp_sample_sequential"]
                 # sample sequentially
-                s, pi, v, _, _ = unzip(shuffle(e._exp[1:sample_size]))
+                s, pi, v, _, _ = unzip(e._exp[1:sample_size])
                 # reshape to tensor
                 s = reshape(cat(s...; dims=3), (e.size(), e.size(), 1, sample_size))
                 pi = reshape(cat(pi...; dims=3), (e.size(), e.size(), sample_size))

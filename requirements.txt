@@ -5,6 +5,7 @@ Flux
 HTTP
 JLD
 JSON
+ProgressMeter
 Serialization
 StatsBase
 Unzip

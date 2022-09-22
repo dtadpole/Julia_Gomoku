@@ -134,6 +134,9 @@ mutable struct Train
             loss_v_list = Vector{Float32}()
             loss_entropy_list = Vector{Float32}()
 
+            # params
+            params = t._exps.model().params()
+
             for (state, pi, v) in data_loader
 
                 if args["model_cuda"] >= 0
@@ -150,7 +153,6 @@ mutable struct Train
 
                 @info "sizes" size(state) size(pa) size(v)
 
-                params = t._exps.model().params()
                 loss_tuple, back = pullback(params) do
                     t._exps.model().loss(state, pa, v) # [IMPORTANT] use normalized distribution pa !!
                 end
