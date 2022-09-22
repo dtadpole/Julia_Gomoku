@@ -192,10 +192,10 @@ function parse_commandline()
         default = 2
 
         "--population_max"
-        help = "population man size"
+        help = "population max size"
         arg_type = Int
-        range_tester = (x -> x >= 10)
-        default = 10
+        range_tester = (x -> x >= 12)
+        default = 12
 
     end
 
