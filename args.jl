@@ -31,12 +31,12 @@ function parse_commandline()
         "--model_loss_coef_entropy"
         help = "model loss entropy coefficient"
         arg_type = Float32
-        default = Float32(0.4)
+        default = Float32(0.5)
 
-        "--model_loss_theta_entropy"
+        "--model_loss_coef_theta"
         help = "model loss theta coefficient"
         arg_type = Float32
-        default = Float32(0.001)
+        default = Float32(1.0)
 
         "--mcts_n_multiplier"
         help = "mcts play count multiplier"
@@ -106,7 +106,7 @@ function parse_commandline()
         "--learning_rate_range"
         help = "learning rate range"
         arg_type = Float32
-        default = Float32(5.0)
+        default = Float32(8.0)
 
         "--adamw_beta1"
         help = "adamw beta1"
@@ -121,7 +121,7 @@ function parse_commandline()
         "--adamw_weight_decay"
         help = "adamw weight decay"
         arg_type = Float32
-        default = Float32(0.0005)
+        default = Float32(0.0003)
 
         "--exp_min"
         help = "experience min"

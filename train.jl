@@ -20,7 +20,7 @@ exp_filename = (id::Int) -> begin
 end
 
 """Save optimizer"""
-function save_optimizer(path::String, opt::Flux.Optimise.Optimiser)
+function save_optimizer(path::String, opt::Flux.Optimise.AbstractOptimiser)
     open(path, "w") do io
         serialize(io, opt)
     end
@@ -130,6 +130,7 @@ mutable struct Train
             loss_pi_list = Vector{Float32}()
             loss_v_list = Vector{Float32}()
             loss_entropy_list = Vector{Float32}()
+            loss_reg_list = Vector{Float32}()
 
             for (state, pi, v) in data_loader
 
@@ -157,7 +158,7 @@ mutable struct Train
                 Flux.update!(t._experiences.opt(), params, grads)
 
                 # get loss components
-                new_loss, loss_pi, loss_v, loss_entropy, new_pi, ne
+                new_loss, loss_pi, loss_v, loss_entropy, new_pi, new_v = loss_tuple
 
                 if !args["exp_sample_sequential"]
                     t._experiences.addtrainedBatch(id, 1)
@@ -168,6 +169,7 @@ mutable struct Train
                 push!(loss_pi_list, loss_pi |> cpu)
                 push!(loss_v_list, loss_v |> cpu)
                 push!(loss_entropy_list, loss_entropy |> cpu)
+                push!(loss_reg_list, loss_reg |> cpu)
 
                 next!(progress_tracker; showvalues=[
                     (:loss, round(loss_avg, digits=2)),
@@ -198,22 +200,23 @@ mutable struct Train
             pi_epoch = round(mean(loss_pi_list), digits=2)
             v_epoch = round(mean(loss_v_list), digits=3)
             entropy_epoch = round(mean(loss_entropy_list), digits=2)
+            reg_epoch = round(mean(loss_reg_list), digits=4)
 
-            @info "Training epoch [$(epoch)] updated [loss : $(loss_epoch) = $(pi_epoch),π + $(v_epoch),v - $(args["model_loss_coef_entropy"]) * $(entropy_epoch),H]"
+            @info "Training epoch [$(epoch)] [$(loss_epoch),L = $(pi_epoch),π + $(v_epoch),ν - $(args["model_loss_coef_entropy"]) × $(entropy_epoch),H + $(args["model_loss_coef_theta"]) × $(reg_epoch),θ]"
 
             # check for kl divergence
             kl_epoch_mean = mean(kl_list)
 
             if kl_epoch_mean > args["train_kl_target"] * 2.0
                 new_learning_rate = max(t._experiences.opt(id)[1].eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
-                @info "KL divergence [$(round(kl_epoch_mean, digits=4)) > $(args["train_kl_target"]) * 2.0] ... reducing learning rate to [$(round(new_learning_rate, digits=4))] ."
+                @info "KL divergence [$(round(kl_epoch_mean, digits=4)) > $(args["train_kl_target"]) × 2.0] ... reducing learning rate to [$(round(new_learning_rate, digits=4))] ."
                 # update learning rate
-                t._experiences.opt(id)[1].eta = new_learning_rate
+                t._experiences.opt()[1].eta = new_learning_rate
             elseif kl_epoch_mean < args["train_kl_target"] / 2.0
                 new_learning_rate = min(t._experiences.opt(id)[1].eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
-                @info "KL divergence [$(round(kl_epoch_mean, digits=4)) < $(args["train_kl_target"]) / 2.0] ... increasing learning rate to [$(round(new_learning_rate, digits=4))] ."
+                @info "KL divergence [$(round(kl_epoch_mean, digits=4)) < $(args["train_kl_target"]) ÷ 2.0] ... increasing learning rate to [$(round(new_learning_rate, digits=4))] ."
                 # update learning rate
-                t._experiences.opt(id)[1].eta = new_learning_rate
+                t._experiences.opt()[1].eta = new_learning_rate
             else
                 learning_rate = t._experiences.opt(id)[1].eta
                 @info "KL divergence [$(round(kl_epoch_mean, digits=4)) within range] ... keeping learning rate as [$(round(learning_rate, digits=4))] ."

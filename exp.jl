@@ -11,7 +11,7 @@ mutable struct Experiences
     # attributes
     _elo::Elo
     _model::Model
-    _opt::Flux.Optimise.Optimiser
+    _opt::Flux.Optimise.AbstractOptimiser
     _exp::Vector{Tuple{Matrix{Float32},Matrix{Float32},Float32,Int,Int}}
     _total_count::Int
     _trained_batches::Int
@@ -33,7 +33,7 @@ mutable struct Experiences
     elo::Function
 
     # constructor
-    function Experiences(model::Model, opt::Flux.Optimise.Optimiser)
+    function Experiences(model::Model, opt::Flux.Optimise.AbstractOptimiser)
 
         global _WEIGHTS
 

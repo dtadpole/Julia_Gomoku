@@ -131,14 +131,15 @@ mutable struct Model
         m.loss = (x, pi, v) -> begin
             # model forward
             p_, v_ = m.forward(x)
-            # panelty() = args["model_loss_theta_entropy"] * sum(x -> sum(x -> x .* x, x), Flux.params(m._model))
             entropy() = -sum(p_ .* log.(p_), dims=[1, 2])
+            # reg() = mean(x -> mean(x.^2), Flux.params(m._model))
             loss_pi = mean(-sum(pi .* log.(p_), dims=[1, 2]))
             loss_v = mean((v .- v_) .^ 2)
             loss_entropy = mean(entropy())
-            loss = loss_pi + loss_v - (args["model_loss_coef_entropy"] * loss_entropy) # calculate loss for each sample in the batch
-            # reduce mean for loss
-            return loss, loss_pi, loss_v, loss_entropy, p_, v_
+	    # loss_reg = mean(reg())
+	    loss_reg = 0.0f0
+            loss = loss_pi + loss_v - (args["model_loss_coef_entropy"] * loss_entropy) + args["model_loss_coef_theta"] * loss_reg
+            return loss, p_, v_, loss_pi, loss_v, loss_entropy, loss_reg
         end
 
         """Save"""
