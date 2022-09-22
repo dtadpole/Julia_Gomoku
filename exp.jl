@@ -179,7 +179,7 @@ mutable struct Experiences
             # get a match
             HTTP.register!(router, "GET", "/match", (req) -> begin
                 if e._elo.activeSize() <= 0
-                    return HTTP.Response(400, Dict("Content-Type" => "application/json"), body=JSON.json((1, 1)))
+                    return HTTP.Response(200, Dict("Content-Type" => "application/json"), body=JSON.json((1, 1)))
                     # elseif e._elo.activeSize() == 1
                     #     id_1, id_2 = e._elo.selfMatch(first(e._elo.activePlayers()))
                     #     return HTTP.Response(200, Dict("Content-Type" => "application/json"), body=JSON.json((id_1, id_2)))
