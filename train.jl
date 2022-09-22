@@ -161,7 +161,7 @@ mutable struct Train
                 grads = back((1.0f0, nothing, nothing, nothing, nothing, nothing))
 
                 # get loss components
-                new_loss, loss_pi, loss_v, loss_entropy, prev_pi, _ = loss_tuple
+                batch_loss, loss_pi, loss_v, loss_entropy, prev_pi, _ = loss_tuple
 
                 # train
                 Flux.update!(t._exps.opt(), params, grads)
@@ -171,7 +171,7 @@ mutable struct Train
                 end
 
                 # keep track of loss
-                push!(loss_list, new_loss |> cpu)
+                push!(loss_list, batch_loss |> cpu)
                 push!(loss_pi_list, loss_pi |> cpu)
                 push!(loss_v_list, loss_v |> cpu)
                 push!(loss_entropy_list, loss_entropy |> cpu)
@@ -203,6 +203,8 @@ mutable struct Train
                 end
 
             end
+
+            @info "Training epoch [$(epoch)] $(msg)"
 
             # check for kl divergence
             kl_epoch = mean(kl_list)

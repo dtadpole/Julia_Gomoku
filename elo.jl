@@ -134,7 +134,7 @@ mutable struct Elo
         e.activeSize = () -> length(e._activePlayers)
 
         """Active average rating"""
-        e.activeAvgRating = () -> e.activeSize() == 0 ? 2000 : mean(map(x -> e._ratings[x], e._activePlayers))
+        e.activeAvgRating = () -> e.activeSize() == 0 ? 2000 : mean(map(x -> e._ratings[x], collect(e._activePlayers)))
 
         """Make player active"""
         e.makeActive = (id) -> begin
