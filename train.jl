@@ -261,7 +261,7 @@ mutable struct Train
 
                 # if too many active players, remove lowest elo player
                 while t.elo().activeSize() > args["population_max"]
-                    min_tuple = active_pool[argmin([p[2] for p in active_pool])]
+                    min_tuple = active_pool[argmin([p[1] == 1 ? typemax(Int) : p[2] for p in active_pool])]
                     if min_tuple[1] != 1 # do not remove the first player
                         t.elo().makeInactive(min_tuple[1])
                     end
