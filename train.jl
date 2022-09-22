@@ -6,21 +6,18 @@ using Unzip
 # unzip(a) = map(x -> getfield.(a, x), fieldnames(eltype(a)))
 
 """Opt path"""
-opt_filename = (id::Int) -> begin
-    opt_path = "./trained/$(t.size())x$(t.size())/opt_$(id).curr"
-    ensure_filepath(opt_path)
-    return opt_path
+opt_filename = (id::Int; size = args["game_size"]) -> begin
+    return "./trained/$(size)x$(size)/opt_$(id).curr"
 end
 
 """Exp path"""
-exp_filename = (id::Int) -> begin
-    exp_path = "./trained/$(t.size())x$(t.size())/exp_$(id).curr"
-    ensure_filepath(exp_path)
-    return exp_path
+exp_filename = (id::Int; size = args["game_size"]) -> begin
+    return "./trained/$(size)x$(size)/exp_$(id).curr"
 end
 
 """Save optimizer"""
 function save_optimizer(path::String, opt::Flux.Optimise.AbstractOptimiser)
+    backup_file(path)
     open(path, "w") do io
         serialize(io, opt)
     end
@@ -35,7 +32,7 @@ end
 
 mutable struct Train
 
-    _experiences::Experiences
+    _exps::Experiences
 
     # functions
     size::Function
@@ -43,6 +40,7 @@ mutable struct Train
     expPath::Function
     optPath::Function
     train::Function
+    elo::Function
 
     # constructor
     function Train()
@@ -89,8 +87,8 @@ mutable struct Train
             end
 
             # initialize experiences
-            t._experiences = Experiences(model_, opt_)
-            id_ = t._experiences.elo().newPlayer()
+            t._exps = Experiences(model_, opt_)
+            id_ = t._exps.elo().newPlayer()
             @info "Initialize Experiences [Player ID = $(id_)]"
 
             # load experiences if exists
@@ -98,13 +96,13 @@ mutable struct Train
             if isfile(exp_filename)
                 @info repeat("-", 50)
                 @info "Loading Experiences from [$(exp_filename)] ..."
-                t._experiences.load(exp_filename)
-                @info "Loaded Experiences [len=$(t._experiences.length(id)), total=$(t._experiences.totalCount(id)), trained=$(t._experiences.trainedBatch(id))]"
+                t._exps.load(exp_filename)
+                @info "Loaded Experiences [len=$(t._exps.length(id)), total=$(t._exps.totalCount(id)), trained=$(t._exps.trainedBatch(id))]"
             end
 
             # start experiences server
             @info repeat("=", 50)
-            t._experiences.startServer()
+            t._exps.startServer()
 
         end
 
@@ -113,10 +111,10 @@ mutable struct Train
         """Train epoch"""
         function train_epoch(epoch::Int)
 
-            @info "Training epoch [$(epoch)] started [len=$(t._experiences.length()), tot=$(t._experiences.totalCount()), trn=$(t._experiences.trainedBatch())] ..."
+            @info "Training epoch [$(epoch)] started [len=$(t._exps.length()), tot=$(t._exps.totalCount()), trn=$(t._exps.trainedBatch())] ..."
 
             # re-sample each epoch
-            (states, pis, vs) = t._experiences.sampleExperience(id, BATCH_SIZE * BATCH_NUM)
+            (states, pis, vs) = t._exps.sampleExperience(id, BATCH_SIZE * BATCH_NUM)
 
             data_loader = Flux.Data.DataLoader((states, pis, vs), batchsize=BATCH_SIZE, shuffle=true)
 
@@ -143,25 +141,25 @@ mutable struct Train
                 # @info "sizes" size(state) size(pi) size(v)
 
                 # calculate previous policy
-                prev_pi, _ = t._experiences.model(id).forward(state)
+                prev_pi, _ = t._exps.model(id).forward(state)
 
                 # convert from visit count to distribution
                 pa = softmax(log.(pi .+ 1e-8), dims=[1, 2])
 
-                params = t._experiences.model().params()
+                params = t._exps.model().params()
                 loss_tuple, back = pullback(params) do
-                    t._experiences.model(id).loss(state, pa, v)  # [IMPORTANT] use normalized distribution pa !!
+                    t._exps.model().loss(state, pa, v)  # [IMPORTANT] use normalized distribution pa !!
                 end
 
-                grads = back((1.0, 0.0, 0.0))
+                grads = back((1.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0))
 
-                Flux.update!(t._experiences.opt(), params, grads)
+                Flux.update!(t._exps.opt(), params, grads)
 
                 # get loss components
-                new_loss, loss_pi, loss_v, loss_entropy, new_pi, new_v = loss_tuple
+                new_loss, new_pi, new_v, loss_pi, loss_v, loss_entropy, loss_reg = loss_tuple
 
                 if !args["exp_sample_sequential"]
-                    t._experiences.addtrainedBatch(id, 1)
+                    t._exps.addtrainedBatch(1)
                 end
 
                 # keep track of loss
@@ -171,55 +169,51 @@ mutable struct Train
                 push!(loss_entropy_list, loss_entropy |> cpu)
                 push!(loss_reg_list, loss_reg |> cpu)
 
-                next!(progress_tracker; showvalues=[
-                    (:loss, round(loss_avg, digits=2)),
-                    (:curr, round(loss_curr, digits=2)),
-                    (:recon, round(loss_recon, digits=2)),
-                    (:kl, round(loss_kl, digits=2)),
-                    (:mu, round.(mu, digits=2)),
-                    (:sigma, round.(sigma, digits=2)),
-                ])
+                loss_avg = round(mean(loss_list), digits=3)
+                loss_pi_avg = round(mean(loss_pi_list), digits=2)
+                loss_v_avg = round(mean(loss_v_list), digits=3)
+                loss_entropy_avg = round(mean(loss_entropy_list), digits=2)
+                loss_reg_avg = round(mean(loss_reg_list), digits=4)
+
+                msg = "[$(loss_avg) = $(loss_pi_avg),π + $(loss_v_avg),ν - $(args["model_loss_coef_entropy"]) × $(loss_entropy_avg),H + $(args["model_loss_coef_theta"]) × $(loss_reg_avg),θ]"
 
                 # calculate KL divergence
                 kl_sum = sum(prev_pi .* (log.(prev_pi) .- log.(new_pi)), dims=[1, 2])
                 kl = reshape(kl_sum, BATCH_SIZE)
-                kl_mean = mean(kl)
+                kl_batch_mean = round(mean(kl), digits=4)
+
+                next!(progress_tracker; showvalues=[
+                    (:loss, msg),
+                    (:kl, kl_batch_mean),
+                ])
 
                 # update global list
                 kl_list = vcat(kl_list, kl |> cpu)
 
                 # check if kl divergence is too high, break early if so
-                if kl_mean > 4 * args["train_kl_target"]
-                    @info "KL divergence [$(round(kl_mean, digits=4)) > 4 * $(args["train_kl_target"])] ... stopping early ."
+                if kl_batch_mean > 4 * args["train_kl_target"]
+                    @info "KL divergence [$(round(kl_batch_mean, digits=4)) > 4 * $(args["train_kl_target"])] ... stopping early ."
                     break
                 end
 
             end
 
-            loss_epoch = round(mean(loss_list), digits=3)
-            pi_epoch = round(mean(loss_pi_list), digits=2)
-            v_epoch = round(mean(loss_v_list), digits=3)
-            entropy_epoch = round(mean(loss_entropy_list), digits=2)
-            reg_epoch = round(mean(loss_reg_list), digits=4)
-
-            @info "Training epoch [$(epoch)] [$(loss_epoch),L = $(pi_epoch),π + $(v_epoch),ν - $(args["model_loss_coef_entropy"]) × $(entropy_epoch),H + $(args["model_loss_coef_theta"]) × $(reg_epoch),θ]"
-
             # check for kl divergence
-            kl_epoch_mean = mean(kl_list)
+            kl_epoch = mean(kl_list)
 
-            if kl_epoch_mean > args["train_kl_target"] * 2.0
-                new_learning_rate = max(t._experiences.opt(id)[1].eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
-                @info "KL divergence [$(round(kl_epoch_mean, digits=4)) > $(args["train_kl_target"]) × 2.0] ... reducing learning rate to [$(round(new_learning_rate, digits=4))] ."
+            if kl_epoch > args["train_kl_target"] * 2.0
+                new_lr = max(t._exps.opt(id)[1].eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
+                @info "KL divergence [$(round(kl_epoch, digits=4)) > $(args["train_kl_target"]) × 2.0] ... reducing learning rate to [$(round(new_lr, digits=4))] ."
                 # update learning rate
-                t._experiences.opt()[1].eta = new_learning_rate
-            elseif kl_epoch_mean < args["train_kl_target"] / 2.0
-                new_learning_rate = min(t._experiences.opt(id)[1].eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
-                @info "KL divergence [$(round(kl_epoch_mean, digits=4)) < $(args["train_kl_target"]) ÷ 2.0] ... increasing learning rate to [$(round(new_learning_rate, digits=4))] ."
+                t._exps.opt()[1].eta = new_lr
+            elseif kl_epoch < args["train_kl_target"] / 2.0
+                new_lr = min(t._exps.opt(id)[1].eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
+                @info "KL divergence [$(round(kl_epoch, digits=4)) < $(args["train_kl_target"]) ÷ 2.0] ... increasing learning rate to [$(round(new_lr, digits=4))] ."
                 # update learning rate
-                t._experiences.opt()[1].eta = new_learning_rate
+                t._exps.opt()[1].eta = new_lr
             else
-                learning_rate = t._experiences.opt(id)[1].eta
-                @info "KL divergence [$(round(kl_epoch_mean, digits=4)) within range] ... keeping learning rate as [$(round(learning_rate, digits=4))] ."
+                lr = t._exps.opt(id)[1].eta
+                @info "KL divergence [$(round(kl_epoch, digits=4)) within range] ... keeping learning rate as [$(round(lr, digits=4))] ."
             end
 
         end
@@ -227,32 +221,81 @@ mutable struct Train
         """Save trained model, optimizer, and experiences"""
         function save_trained()
 
+            function eval_player(player_id::Int)
+
+                # if not enough active players, make this player active
+                if t.elo().activeSize() < args["population_min"]
+                    t.elo().makeActive(player_id)
+                    return nothing
+                else
+                    t.elo().makeCandidate(player_id)
+                end
+
+                # get a list of active players and their ratings
+                active_pool = t.elo().playerInfo()["active"]
+                active_avg_rating = t.elo().activeAvgRating()
+
+                # if too many active players, remove lowest elo player
+                while t.elo().activeSize() > args["population_max"]
+                    min_tuple = active_pool[argmin([p[2] for p in active_pool])]
+                    t.elo().makeInactive(min_tuple[1])
+                end
+
+                # check if any active player with rating < 1800, or is 200 elo below avg
+                for (id, rating) in active_pool
+                    if rating < 1800 || rating < active_avg_rating - 200
+                        # remove players with low elo
+                        t.elo().makeInactive(id)
+                        # add from candidate pool
+                        if t.elo().candidateSize() > 0
+                            candidate_id = t.elo().randCandidate()
+                            t.elo().makeActive(candidate_id)
+                        end
+                    end
+                end
+
+                # if we have two or more candidates, and we have not reached the max number of players
+                if t.elo().candidaeSize() >= 2 && t.elo().activeSize() < args["population_max"]
+                    t.elo().makeActive(t.elo().randCandidate()) # add a random candidate
+                    t.elo().clearCandidates() # clear all candidates
+                end
+
+            end
+
             # print separator
             @info repeat("-", 50)
+
+            # create a new player with average active player rating
+            player_id = t.elo().newPlayer(init_rating=e.elo().activeAvgRating())
 
             # save model
-            model_ = t._experiences.model
+            model_ = t._exps.model
             params_size = sum([length(l) for l in Flux.params(model_._model)])
-            model_filename = model_filename(1)
-            @info "Save model [$(model_filename)] : [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]"
-            backup_file(model_filename)
-            model_.save(model_filename)
+            model_filepath = model_filename(player_id)
+            @info "Save model [$(model_filepath)] : [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]"
+            model_.save(model_filepath)
 
             # save optimizer
-            opt_ = t._experiences.opt()
-            opt_filename = opt_filename(1)
-            @info "Save optimizer [$(opt_filename)] : [η=$(round(opt_[1].eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
-            backup_file(opt_filename)
-            save_optimizer(opt_filename, opt_)
+            opt_ = t._exps.opt()
+            opt_filepath = opt_filename(1)
+            @info "Save optimizer [$(opt_filepath)] : [η=$(round(opt_[1].eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
+            save_optimizer(opt_filepath, opt_)
 
             # save experiences
-            exp_filename = exp_filename(1)
-            @info "Save experiences [$(exp_filename)] : [len=$(t._experiences.length(id)), tot=$(t._experiences.totalCount(id)), trn=$(t._experiences.trainedBatch(id))]"
-            backup_file(exp_filename)
-            t._experiences.save(id, exp_filename)
+            exp_filepath = exp_filename(1)
+            @info "Save experiences [$(exp_filepath)] : [len=$(t._exps.length(id)), tot=$(t._exps.totalCount(id)), trn=$(t._exps.trainedBatch(id))]"
+            t._exps.save(id, exp_filepath)
 
             # print separator
             @info repeat("-", 50)
+
+            # evaluate player
+            eval_player(player_id)
+
+            # save elo ratings
+            t.elo().savePlayers(elo_filename("player"))
+            t.elo().saveRatings(elo_filename("rating"))
+            t.elo().saveHistory(elo_filename("history"))
 
         end
 
@@ -267,11 +310,11 @@ mutable struct Train
 
                 try
                     # check trained batch count, exit if exceeded maximum
-                    if t._experiences.trainedBatch(id) > args["exp_trained_batch"]
+                    if t._exps.trainedBatch() > args["exp_trained_batch"]
                         exit(0)
                     end
 
-                    if (t._experiences.trainedBatch(id) * args["train_trim_ratio"] + BATCH_NUM * TRAIN_EPOCHS) * BATCH_SIZE < t._experiences.totalCount(id) * TRAIN_EPOCHS
+                    if (t._exps.trainedBatch() * args["train_trim_ratio"] + BATCH_NUM * TRAIN_EPOCHS) * BATCH_SIZE < t._exps.totalCount() * TRAIN_EPOCHS
 
                         sleep_count_ema = 0.9 * sleep_count_ema + 0.1 * sleep_count
                         sleep_time = max(1.0, min(120.0, (sleep_time * sleep_count_ema) / 5.0))
@@ -289,7 +332,7 @@ mutable struct Train
                             finally
                                 if args["exp_sample_sequential"]
                                     # always add BATCH_NUM to trainedBatch
-                                    t._experiences.addtrainedBatch(id, BATCH_NUM)
+                                    t._exps.addtrainedBatch(id, BATCH_NUM)
                                 end
                                 # GC & reclaim CUDA memory
                                 GC.gc(true)
@@ -301,7 +344,7 @@ mutable struct Train
 
                         if args["exp_sample_sequential"]
                             # trim experiences by BATCH_SIZE * BATCH_NUM
-                            t._experiences.trimExperience(id, trunc(Int, BATCH_SIZE * BATCH_NUM * args["train_trim_ratio"]))
+                            t._exps.trimExperience(id, trunc(Int, BATCH_SIZE * BATCH_NUM * args["train_trim_ratio"]))
                         end
 
                         # save trained model, optimizer, and experiences
@@ -309,7 +352,7 @@ mutable struct Train
 
                     else
 
-                        @info "Training is waiting for more experiences [len=$(t._experiences.length()), tot=$(t._experiences.totalCount()), trn=$(t._experiences.trainedBatch())] ..."
+                        @info "Training is waiting for more experiences [len=$(t._exps.length()), tot=$(t._exps.totalCount()), trn=$(t._exps.trainedBatch())] ..."
 
                     end
 
@@ -325,16 +368,18 @@ mutable struct Train
                         CUDA.reclaim()
                     end
 
+                    # sleep
                     sleep_count += 1
-
                     sleep(sleep_time)
+
                 end
 
             end
 
         end
 
-        return t
+        """elo"""
+        t.elo = () -> t._exps.elo()
 
     end
 

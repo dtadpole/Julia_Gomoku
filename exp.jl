@@ -188,6 +188,7 @@ mutable struct Experiences
 
         """Save"""
         e.save = (path) -> begin
+            backup_file(path)
             open(path, "w") do io
                 serialize(io, (e._total_count, e._trained_batches, e._exp))
             end

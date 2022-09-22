@@ -11,7 +11,7 @@ function parse_commandline()
         "--game_size"
         help = "game size"
         arg_type = Int
-        default = 11
+        default = 7
 
         "--game_display"
         help = "display game"
@@ -194,8 +194,8 @@ function parse_commandline()
         "--population_max"
         help = "population man size"
         arg_type = Int
-        range_tester = (x -> x >= 5)
-        default = 7
+        range_tester = (x -> x >= 4)
+        default = 8
 
     end
 

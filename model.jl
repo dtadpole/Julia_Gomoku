@@ -11,9 +11,7 @@ global URL_BASE = URL_BASE = "http://$(args["exp_server"]):$(args["exp_port"])"
 
 """Model filename"""
 model_filename = (id::Int; size=args["game_size"], tag="curr") -> begin
-    model_path = "./trained/$(size)x$(size)/model_$(id).$(tag)"
-    ensure_filepath(model_path)
-    return model_path
+    return "./trained/$(size)x$(size)/model_$(id).$(tag)"
 end
 
 
@@ -136,8 +134,8 @@ mutable struct Model
             loss_pi = mean(-sum(pi .* log.(p_), dims=[1, 2]))
             loss_v = mean((v .- v_) .^ 2)
             loss_entropy = mean(entropy())
-	    # loss_reg = mean(reg())
-	    loss_reg = 0.0f0
+            # loss_reg = mean(reg())
+            loss_reg = 0.0f0
             loss = loss_pi + loss_v - (args["model_loss_coef_entropy"] * loss_entropy) + args["model_loss_coef_theta"] * loss_reg
             return loss, p_, v_, loss_pi, loss_v, loss_entropy, loss_reg
         end
