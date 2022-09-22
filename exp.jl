@@ -158,12 +158,15 @@ mutable struct Experiences
             # download model
             HTTP.register!(router, "GET", "/model/{id}", (req) -> begin
                 id = parse(Int, HTTP.getparams(req)["id"])
-                model_path = model_filename(id)
-                open(model_path, "r") do io
-                    return HTTP.Response(200, Dict("Content-Type" => "application/octet-stream"), body=io)
+                if id == 1 # return in memory model for id = 1
+                    serialize(io, (e._model_list[id].size(), e._model_list[id].channels(), e._model_list[id]._model |> cpu))
+                    return HTTP.Response(200, Dict("Content-Type" => "application/octet-stream"), body=io.data)
+                else
+                    model_path = model_filename(id)
+                    open(model_path, "r") do io
+                        return HTTP.Response(200, Dict("Content-Type" => "application/octet-stream"), body=io)
+                    end
                 end
-                # serialize(io, (id, e._model_list[id].size(), e._model_list[id].channels(), e._model_list[id]._model |> cpu))
-                # return HTTP.Response(200, Dict("Content-Type" => "application/octet-stream"), body=io.data)
             end)
 
             # get a match
