@@ -257,7 +257,7 @@ mutable struct Train
 
                 # check if any active player with rating < 1800, or is 200 elo below avg
                 for (id, rating) in active_pool
-                    if rating < 1800 || rating < active_avg_rating - 200
+                    if rating < 1850 || rating < active_avg_rating - 150
                         # remove players with low elo
                         t.elo().makeInactive(id)
                         # add from candidate pool

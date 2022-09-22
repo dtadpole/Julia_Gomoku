@@ -2,7 +2,7 @@ include("./args.jl")
 
 import YAML
 
-const _ELO_K_VALUE = 32.0f0
+const _ELO_K_VALUE = 16.0f0
 const _ELO_INIT_RATING = 2000
 
 """Elo path"""
