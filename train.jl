@@ -279,6 +279,7 @@ mutable struct Train
                                 t.elo().makeActive(candidate_id)
                                 t.elo().clearCandidates() # clear all candidates after adding one to active
                             end
+                            break
                         end
                     end
                 end
