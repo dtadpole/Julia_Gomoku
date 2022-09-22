@@ -196,7 +196,7 @@ mutable struct Train
                 new_pi, _ = t._exps.model().forward(state)
 
                 # calculate KL divergence
-                kl_sum = sum(new_pi .* (log.(new_pi) .- log.(prev_pi)), dims=[1, 2])
+                kl_sum = sum(prev_pi .* (log.(prev_pi) .- log.(new_pi)), dims=[1, 2])
                 kl_batch_mean = round(mean(kl_sum), digits=4)
                 push!(kl_list, kl_batch_mean)
 
