@@ -75,7 +75,8 @@ mutable struct Elo
 
         """Player info"""
         e.playerInfo = () -> begin
-            dict = Dict{String,Vector{Vector{Int}}}(
+            dict = Dict(
+                "avg" => e.activeAvgRating(),
                 "active" => map(x -> [x, e._ratings[x]], collect(e._activePlayers)),
                 "candidate" => map(x -> [x, e._ratings[x]], collect(e._candidatePlayers)),
             )
@@ -134,7 +135,7 @@ mutable struct Elo
         e.activeSize = () -> length(e._activePlayers)
 
         """Active average rating"""
-        e.activeAvgRating = () -> e.activeSize() == 0 ? 2000 : round(Int, mean(map(x -> e._ratings[x], collect(e._activePlayers))))
+        e.activeAvgRating = () -> e.activeSize() == 0 ? 2000 : round(Int, sum(map(x -> e._ratings[x], collect(e._activePlayers))) / e.activeSize())
 
         """Make player active"""
         e.makeActive = (id) -> begin
