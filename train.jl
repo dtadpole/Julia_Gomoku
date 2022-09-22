@@ -118,11 +118,16 @@ mutable struct Train
 
             @info "Training epoch [$(epoch)] started [len=$(t._exps.length()), tot=$(t._exps.totalCount()), trn=$(t._exps.trainedBatch())] ..."
 
+            start_time = time()
+
             # re-sample each epoch
             (states, pis, vs) = t._exps.sampleExperience(BATCH_SIZE * BATCH_NUM)
 
             data_loader = Flux.Data.DataLoader((states, pis, vs), batchsize=BATCH_SIZE, shuffle=true)
 
+            @info "$(time() - start_time)s to sample"
+
+            start_time = time()
             progress_tracker = Progress(length(data_loader), dt=0.2, desc="Training epoch $(epoch): ")
 
             # keeps a list of kl divergence
@@ -199,6 +204,8 @@ mutable struct Train
                 end
 
             end
+
+            @info "$(time() - start_time)s to train"
 
             # finish!(progress_tracker; showvalues=[
             #     (:loss, msg),
