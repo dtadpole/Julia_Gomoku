@@ -298,17 +298,17 @@ if abspath(PROGRAM_FILE) == @__FILE__
     elo.clearCandidates()
 
     # save ratings
-    elo.saveRatings(elo_filename("ratings"))
+    elo.saveRatings(elo_filename("rating"))
     # load ratings
-    @info "Ratings" elo.loadRatings(elo_filename("ratings"))
+    @info "Ratings" elo.loadRatings(elo_filename("rating"))
     # save history
     elo.saveHistory(elo_filename("history"))
     # load history
     @info "History" elo.loadHistory(elo_filename("history"))
     # save players
-    elo.savePlayers(elo_filename("players"))
+    elo.savePlayers(elo_filename("player"))
     # load players
-    @info "Players" elo.loadPlayers(elo_filename("players"))
+    @info "Players" elo.loadPlayers(elo_filename("player"))
     # save log
     elo.saveLog(elo_filename("log"))
     # load log
