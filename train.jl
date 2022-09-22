@@ -181,8 +181,6 @@ mutable struct Train
                 loss_v_avg = round(mean(loss_v_list), digits=3)
                 loss_entropy_avg = round(mean(loss_entropy_list), digits=2)
 
-                msg = "[$(loss_avg) = $(loss_pi_avg),π + $(loss_v_avg),ν - $(args["model_loss_coef_entropy"]) × $(loss_entropy_avg),H]"
-
                 # calculate new policy
                 new_pi, _ = t._exps.model().forward(state)
 
@@ -190,14 +188,13 @@ mutable struct Train
                 kl_sum = sum(prev_pi .* (log.(prev_pi) .- log.(new_pi)), dims=[1, 2])
                 kl = reshape(kl_sum, BATCH_SIZE)
                 kl_batch_mean = round(mean(kl), digits=5)
+                push!(kl_list, kl_batch_mean)
+
+                msg = "[$(loss_avg),L = $(loss_pi_avg),π + $(loss_v_avg),ν - $(args["model_loss_coef_entropy"]) × $(loss_entropy_avg),H] [$(kl_batch_mean),KL]"
 
                 next!(progress_tracker; showvalues=[
                     (:loss, msg),
-                    (:kl, kl_batch_mean),
                 ])
-
-                # update global list
-                kl_list = vcat(kl_list, kl |> cpu)
 
                 # check if kl divergence is too high, break early if so
                 if kl_batch_mean > 4 * args["train_kl_target"]
