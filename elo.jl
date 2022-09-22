@@ -68,7 +68,7 @@ mutable struct Elo
         e._log = Vector{String}()
 
         """Add player.  Returns player id"""
-        e.newPlayer = (init_rating::Int = _ELO_INIT_RATING) -> begin
+        e.newPlayer = (; init_rating::Int=_ELO_INIT_RATING) -> begin
             push!(e._ratings, init_rating)
             return length(e._ratings)
         end
@@ -254,7 +254,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # add players
     for i = 1:SIZE
-        elo.newPlayer()
+        elo.newPlayer(init_rating=i * 100)
     end
     # make players active
     for i = 1:2:SIZE
@@ -284,7 +284,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     end
 
     # add games
-    for i = 1:SIZE
+    for i = 1:SIZE*5
         id1, id2 = elo.sampleMatch()
         elo.addGame(id1, id2, 1.0f0)
         id3, id4 = elo.sampleMatch()
