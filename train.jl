@@ -1,6 +1,6 @@
 include("./exp.jl")
 
-using ProgressMeter: Progress, next!
+using ProgressMeter: Progress, next!, finish!
 using Zygote: pullback
 
 using Unzip
@@ -199,6 +199,10 @@ mutable struct Train
                 end
 
             end
+
+            # finish!(progress_tracker; showvalues=[
+            #     (:loss, msg),
+            # ])
 
             @info "Training epoch [$(epoch)] $(msg)"
 
