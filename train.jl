@@ -62,11 +62,11 @@ mutable struct Train
             params_size = sum([length(l) for l in Flux.params(model_._model)])
             @info "Initialize Model [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]"
             # load model if exists
-            model_filename = model_filename(1)
-            if isfile(model_filename)
+            model_path = model_filename(1)
+            if isfile(model_path)
                 @info repeat("-", 50)
-                @info "Loading Model from [$(model_filename)] ..."
-                model_.load(model_filename)
+                @info "Loading Model from [$(model_path)] ..."
+                model_.load(model_path)
                 @info "Loaded Model [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]" model_._model
             end
 
@@ -74,11 +74,11 @@ mutable struct Train
             opt_ = AdamW(args["learning_rate"], (args["adamw_beta1"], args["adamw_beta2"]), args["adamw_weight_decay"])
             @info "Initialize Optimizer [η=$(round(opt_[1].eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
             # load optimizer if exists
-            opt_filename = opt_filename(1)
-            if isfile(opt_filename)
+            opt_path = opt_filename(1)
+            if isfile(opt_path)
                 @info repeat("-", 50)
-                @info "Loading Optimizer from [$(opt_filename)] ..."
-                opt_ = load_optimizer(opt_filename)
+                @info "Loading Optimizer from [$(opt_path)] ..."
+                opt_ = load_optimizer(opt_path)
                 @info "Loaded Optimizer [η=$(round(opt_[1].eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
             end
             # move to gpu
@@ -87,16 +87,16 @@ mutable struct Train
             end
 
             # initialize experiences
-            t._exps = Experiences(model_, opt_)
+            t._exps = Experiences(Elo(), model_, opt_)
             id_ = t._exps.elo().newPlayer()
             @info "Initialize Experiences [Player ID = $(id_)]"
 
             # load experiences if exists
-            exp_filename = exp_filename(1)
-            if isfile(exp_filename)
+            exp_path = exp_filename(1)
+            if isfile(exp_path)
                 @info repeat("-", 50)
-                @info "Loading Experiences from [$(exp_filename)] ..."
-                t._exps.load(exp_filename)
+                @info "Loading Experiences from [$(exp_path)] ..."
+                t._exps.load(exp_path)
                 @info "Loaded Experiences [len=$(t._exps.length(id)), total=$(t._exps.totalCount(id)), trained=$(t._exps.trainedBatch(id))]"
             end
 
@@ -296,6 +296,7 @@ mutable struct Train
             t.elo().savePlayers(elo_filename("player"))
             t.elo().saveRatings(elo_filename("rating"))
             t.elo().saveHistory(elo_filename("history"))
+            t.elo().saveLog(elo_filename("log"))
 
         end
 
@@ -381,6 +382,8 @@ mutable struct Train
         """elo"""
         t.elo = () -> t._exps.elo()
 
+        return t
+
     end
 
 end
@@ -388,6 +391,6 @@ end
 if abspath(PROGRAM_FILE) == @__FILE__
     @info repeat("=", 50)
     # train model[1] and model[2]
-    train = Train()
-    train.train()
+    t = Train()
+    t.train()
 end

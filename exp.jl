@@ -33,16 +33,16 @@ mutable struct Experiences
     elo::Function
 
     # constructor
-    function Experiences(model::Model, opt::Flux.Optimise.AbstractOptimiser)
+    function Experiences(elo::Elo, model::Model, opt::Flux.Optimise.AbstractOptimiser)
 
         global _WEIGHTS
 
-        e = new(model, opt)
+        e = new(elo, model, opt)
 
         # initialize experiences, total count, and trained count
         e._exp = Vector{Tuple{Matrix{Float32},Matrix{Float32},Float32,Int,Int}}()
-        e._total_count = zeros(Int, length(model))
-        e._trained_batches = zeros(Int, length(model))
+        e._total_count = 0
+        e._trained_batches = 0
 
         """Size"""
         e.size = () -> e._model.size()

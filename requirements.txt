@@ -7,3 +7,4 @@ JLD
 Serialization
 StatsBase
 Unzip
+YAML
