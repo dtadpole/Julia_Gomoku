@@ -199,8 +199,9 @@ mutable struct Train
                 kl_sum = sum(prev_pi .* (log.(prev_pi) .- log.(new_pi)), dims=[1, 2])
                 kl_batch_mean = round(mean(kl_sum), digits=4)
                 push!(kl_list, kl_batch_mean)
+                kl_list_mean = mean(kl_list)
 
-                msg = "[$(loss_avg),L = $(loss_pi_avg),π + $(loss_v_avg),ν - $(args["model_loss_coef_entropy"]) × $(loss_entropy_avg),H] [$(kl_batch_mean),KL]"
+                msg = "[$(loss_avg),L = $(loss_pi_avg),π + $(loss_v_avg),ν - $(args["model_loss_coef_entropy"]) × $(loss_entropy_avg),H] [$(kl_list_mean),KL]"
 
                 next!(progress_tracker; showvalues=[
                     (:loss, msg),
