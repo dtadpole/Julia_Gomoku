@@ -121,11 +121,13 @@ mutable struct Train
             start_time = time()
 
             # re-sample each epoch
-            (states, pis, vs) = t._exps.sampleExperience(BATCH_SIZE * BATCH_NUM)
-
-            data_loader = Flux.Data.DataLoader((states, pis, vs), batchsize=BATCH_SIZE, shuffle=true)
+            train_exps = t._exps.sampleExperience(BATCH_SIZE * BATCH_NUM)
 
             @info "$(time() - start_time)s to sample"
+
+            data_loader = Flux.Data.DataLoader(train_exps, batchsize=BATCH_SIZE, shuffle=true)
+
+            @info "$(time() - start_time)s to data_loader"
 
             start_time = time()
             progress_tracker = Progress(length(data_loader), dt=0.2, desc="Training epoch $(epoch): ")
@@ -144,7 +146,14 @@ mutable struct Train
             # params
             params = t._exps.model().params()
 
-            for (state, pi, v) in data_loader
+            for train_exp in data_loader
+
+                state, pi, v = zip(train_exp)
+
+                # reshape to tensor
+                state = reshape(cat(state...; dims=3), (t.size(), t.size(), 1, :))
+                pi = reshape(cat(pi...; dims=3), (t.size(), t.size(), :))
+                v = reshape(cat(v...; dims=2), (1, :))
 
                 if args["model_cuda"] >= 0
                     state = state |> gpu
@@ -253,19 +262,22 @@ mutable struct Train
                 # if too many active players, remove lowest elo player
                 while t.elo().activeSize() > args["population_max"]
                     min_tuple = active_pool[argmin([p[2] for p in active_pool])]
-                    t.elo().makeInactive(min_tuple[1])
+                    if min_tuple[1] != 1 # do not remove the first player
+                        t.elo().makeInactive(min_tuple[1])
+                    end
                 end
 
                 # check if any active player with rating < 1800, or is 120 elo below avg
                 for (id, rating) in active_pool
                     if rating < active_avg_rating - args["elo_below_avg_cutoff"]
-                        # remove players with low elo
-                        t.elo().makeInactive(id)
-                        # add from candidate pool
-                        if t.elo().candidateSize() > 0
-                            candidate_id = t.elo().randCandidate()
-                            t.elo().makeActive(candidate_id)
-                            t.elo().clearCandidates() # clear all candidates after adding one to active
+                        if id != 1 # do not remove the first player
+                            t.elo().makeInactive(id)
+                            # add from candidate pool
+                            if t.elo().candidateSize() > 0
+                                candidate_id = t.elo().randCandidate()
+                                t.elo().makeActive(candidate_id)
+                                t.elo().clearCandidates() # clear all candidates after adding one to active
+                            end
                         end
                     end
                 end

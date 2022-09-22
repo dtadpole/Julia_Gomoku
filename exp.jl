@@ -101,21 +101,23 @@ mutable struct Experiences
         """Sample experience"""
         e.sampleExperience = (sample_size::Int) -> begin
             if args["exp_sample_sequential"]
-                # sample sequentially
-                s, pi, v, _, _ = unzip(e._exp[1:sample_size])
-                # reshape to tensor
-                s = reshape(cat(s...; dims=3), (e.size(), e.size(), 1, sample_size))
-                pi = reshape(cat(pi...; dims=3), (e.size(), e.size(), sample_size))
-                v = reshape(cat(v...; dims=2), (1, sample_size))
-                return s, pi, v
+                # # sample sequentially
+                # s, pi, v, _, _ = unzip(e._exp[1:sample_size])
+                # # reshape to tensor
+                # s = reshape(cat(s...; dims=3), (e.size(), e.size(), 1, sample_size))
+                # pi = reshape(cat(pi...; dims=3), (e.size(), e.size(), sample_size))
+                # v = reshape(cat(v...; dims=2), (1, sample_size))
+                # return s, pi, v
+                return e._exp[1:sample_size]
             else
-                # sample randomly
-                s, pi, v, _, _ = unzip(sample(e._exp, ProbabilityWeights(_WEIGHTS[1:min(length(e._exp), args["exp_max"])]), sample_size, replace=false))
-                # reshape to tensor
-                s = reshape(cat(s...; dims=3), (e.size(), e.size(), 1, sample_size))
-                pi = reshape(cat(pi...; dims=3), (e.size(), e.size(), sample_size))
-                v = reshape(cat(v...; dims=2), (1, sample_size))
-                return s, pi, v
+                # # sample randomly
+                # s, pi, v, _, _ = unzip(sample(e._exp, ProbabilityWeights(_WEIGHTS[1:min(length(e._exp), args["exp_max"])]), sample_size, replace=false))
+                # # reshape to tensor
+                # s = reshape(cat(s...; dims=3), (e.size(), e.size(), 1, sample_size))
+                # pi = reshape(cat(pi...; dims=3), (e.size(), e.size(), sample_size))
+                # v = reshape(cat(v...; dims=2), (1, sample_size))
+                # return s, pi, v
+                return sample(e._exp, ProbabilityWeights(_WEIGHTS[1:min(length(e._exp), args["exp_max"])]), sample_size, replace=false)
             end
         end
 
