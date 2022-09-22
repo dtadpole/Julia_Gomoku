@@ -202,6 +202,11 @@ function parse_commandline()
         arg_type = Int
         default = 48
 
+        "--elo_below_main_cutoff"
+        help = "elo below main cutoff"
+        arg_type = Int
+        default = 48
+
         "--elo_k_value"
         help = "elo k value"
         arg_type = Float32
