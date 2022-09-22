@@ -1,7 +1,6 @@
 include("./game.jl")
 
 using Flux
-using Zygote
 using CUDA
 using JLD
 using Serialization
@@ -129,15 +128,15 @@ mutable struct Model
         m.loss = (x, pi, v) -> begin
             # model forward
             p_, v_ = m.forward(x)
-            entropy() = -sum(p_ .* log.(p_), dims=[1, 2])
-            # reg() = mean(x -> mean(x.^2), Flux.params(m._model))
+            # entropy(policy) = sum(-policy .* log.(policy), dims=[1, 2])
+            # reg(params) = mean(x -> mean(x.^2), params)
             loss_pi = mean(-sum(pi .* log.(p_), dims=[1, 2]))
             loss_v = mean((v .- v_) .^ 2)
-            loss_entropy = mean(entropy())
-            # loss_reg = mean(reg())
-            loss_reg = 0.0f0
-            loss = loss_pi + loss_v - (args["model_loss_coef_entropy"] * loss_entropy) + args["model_loss_coef_theta"] * loss_reg
-            return loss, p_, v_, loss_pi, loss_v, loss_entropy, loss_reg
+            loss_entropy = mean(-sum(p_ .* log.(p_), dims=[1, 2]))
+            # loss_reg = mean(reg(Flux.params(m._model)))
+            # loss = loss_pi + loss_v - (args["model_loss_coef_entropy"] * loss_entropy) + args["model_loss_coef_theta"] * loss_reg
+            loss = loss_pi + loss_v - (args["model_loss_coef_entropy"] * loss_entropy)
+            return loss, p_, v_, loss_pi, loss_v, loss_entropy
         end
 
         """Save"""

@@ -1,6 +1,7 @@
 include("./exp.jl")
 
 using ProgressMeter: Progress, next!
+using Zygote: pullback
 
 using Unzip
 # unzip(a) = map(x -> getfield.(a, x), fieldnames(eltype(a)))
@@ -118,7 +119,7 @@ mutable struct Train
             @info "Training epoch [$(epoch)] started [len=$(t._exps.length()), tot=$(t._exps.totalCount()), trn=$(t._exps.trainedBatch())] ..."
 
             # re-sample each epoch
-            (states, pis, vs) = t._exps.sampleExperience(id, BATCH_SIZE * BATCH_NUM)
+            (states, pis, vs) = t._exps.sampleExperience(BATCH_SIZE * BATCH_NUM)
 
             data_loader = Flux.Data.DataLoader((states, pis, vs), batchsize=BATCH_SIZE, shuffle=true)
 
@@ -132,7 +133,6 @@ mutable struct Train
             loss_pi_list = Vector{Float32}()
             loss_v_list = Vector{Float32}()
             loss_entropy_list = Vector{Float32}()
-            loss_reg_list = Vector{Float32}()
 
             for (state, pi, v) in data_loader
 
@@ -142,25 +142,25 @@ mutable struct Train
                     v = v |> gpu
                 end
 
-                # @info "sizes" size(state) size(pi) size(v)
-
                 # calculate previous policy
-                prev_pi, _ = t._exps.model(id).forward(state)
+                prev_pi, _ = t._exps.model().forward(state)
 
                 # convert from visit count to distribution
                 pa = softmax(log.(pi .+ 1e-8), dims=[1, 2])
 
+                @info "sizes" size(state) size(pa) size(v)
+
                 params = t._exps.model().params()
                 loss_tuple, back = pullback(params) do
-                    t._exps.model().loss(state, pa, v)  # [IMPORTANT] use normalized distribution pa !!
+                    t._exps.model().loss(state, pa, v) # [IMPORTANT] use normalized distribution pa !!
                 end
 
-                grads = back((1.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0))
+                grads = back((1.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0))
 
                 Flux.update!(t._exps.opt(), params, grads)
 
                 # get loss components
-                new_loss, new_pi, new_v, loss_pi, loss_v, loss_entropy, loss_reg = loss_tuple
+                new_loss, new_pi, new_v, loss_pi, loss_v, loss_entropy = loss_tuple
 
                 if !args["exp_sample_sequential"]
                     t._exps.addtrainedBatch(1)
@@ -171,15 +171,13 @@ mutable struct Train
                 push!(loss_pi_list, loss_pi |> cpu)
                 push!(loss_v_list, loss_v |> cpu)
                 push!(loss_entropy_list, loss_entropy |> cpu)
-                push!(loss_reg_list, loss_reg |> cpu)
 
                 loss_avg = round(mean(loss_list), digits=3)
                 loss_pi_avg = round(mean(loss_pi_list), digits=2)
                 loss_v_avg = round(mean(loss_v_list), digits=3)
                 loss_entropy_avg = round(mean(loss_entropy_list), digits=2)
-                loss_reg_avg = round(mean(loss_reg_list), digits=4)
 
-                msg = "[$(loss_avg) = $(loss_pi_avg),π + $(loss_v_avg),ν - $(args["model_loss_coef_entropy"]) × $(loss_entropy_avg),H + $(args["model_loss_coef_theta"]) × $(loss_reg_avg),θ]"
+                msg = "[$(loss_avg) = $(loss_pi_avg),π + $(loss_v_avg),ν - $(args["model_loss_coef_entropy"]) × $(loss_entropy_avg),H]"
 
                 # calculate KL divergence
                 kl_sum = sum(prev_pi .* (log.(prev_pi) .- log.(new_pi)), dims=[1, 2])
@@ -206,17 +204,17 @@ mutable struct Train
             kl_epoch = mean(kl_list)
 
             if kl_epoch > args["train_kl_target"] * 2.0
-                new_lr = max(t._exps.opt(id)[1].eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
+                new_lr = max(t._exps.opt()[1].eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
                 @info "KL divergence [$(round(kl_epoch, digits=4)) > $(args["train_kl_target"]) × 2.0] ... reducing learning rate to [$(round(new_lr, digits=4))] ."
                 # update learning rate
                 t._exps.opt()[1].eta = new_lr
             elseif kl_epoch < args["train_kl_target"] / 2.0
-                new_lr = min(t._exps.opt(id)[1].eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
+                new_lr = min(t._exps.opt()[1].eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
                 @info "KL divergence [$(round(kl_epoch, digits=4)) < $(args["train_kl_target"]) ÷ 2.0] ... increasing learning rate to [$(round(new_lr, digits=4))] ."
                 # update learning rate
                 t._exps.opt()[1].eta = new_lr
             else
-                lr = t._exps.opt(id)[1].eta
+                lr = t._exps.opt()[1].eta
                 @info "KL divergence [$(round(kl_epoch, digits=4)) within range] ... keeping learning rate as [$(round(lr, digits=4))] ."
             end
 
@@ -287,8 +285,8 @@ mutable struct Train
 
             # save experiences
             exp_filepath = exp_filename(1)
-            @info "Save experiences [$(exp_filepath)] : [len=$(t._exps.length(id)), tot=$(t._exps.totalCount(id)), trn=$(t._exps.trainedBatch(id))]"
-            t._exps.save(id, exp_filepath)
+            @info "Save experiences [$(exp_filepath)] : [len=$(t._exps.length()), tot=$(t._exps.totalCount()), trn=$(t._exps.trainedBatch())]"
+            t._exps.save(exp_filepath)
 
             # print separator
             @info repeat("-", 50)
@@ -337,7 +335,7 @@ mutable struct Train
                             finally
                                 if args["exp_sample_sequential"]
                                     # always add BATCH_NUM to trainedBatch
-                                    t._exps.addtrainedBatch(id, BATCH_NUM)
+                                    t._exps.addtrainedBatch(BATCH_NUM)
                                 end
                                 # GC & reclaim CUDA memory
                                 GC.gc(true)
@@ -349,7 +347,7 @@ mutable struct Train
 
                         if args["exp_sample_sequential"]
                             # trim experiences by BATCH_SIZE * BATCH_NUM
-                            t._exps.trimExperience(id, trunc(Int, BATCH_SIZE * BATCH_NUM * args["train_trim_ratio"]))
+                            t._exps.trimExperience(trunc(Int, BATCH_SIZE * BATCH_NUM * args["train_trim_ratio"]))
                         end
 
                         # save trained model, optimizer, and experiences
