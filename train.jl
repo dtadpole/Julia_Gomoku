@@ -228,17 +228,17 @@ mutable struct Train
 
             if kl_epoch > args["train_kl_target"] * 2.0
                 new_lr = max(t._exps.opt()[1].eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
-                @info "KL divergence [$(kl_epoch) > $(args["train_kl_target"]) × 2.0] ... reducing learning rate to [$(round(new_lr, digits=4))] ."
+                @info "KL divergence [$(kl_epoch) > $(args["train_kl_target"]) × 2.0] ... reducing learning rate to [$(round(new_lr, digits=4))]"
                 # update learning rate
                 t._exps.opt()[1].eta = new_lr
             elseif kl_epoch < args["train_kl_target"] / 2.0
                 new_lr = min(t._exps.opt()[1].eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
-                @info "KL divergence [$(kl_epoch) < $(args["train_kl_target"]) ÷ 2.0] ... increasing learning rate to [$(round(new_lr, digits=4))] ."
+                @info "KL divergence [$(kl_epoch) < $(args["train_kl_target"]) ÷ 2.0] ... increasing learning rate to [$(round(new_lr, digits=4))]"
                 # update learning rate
                 t._exps.opt()[1].eta = new_lr
             else
                 lr = t._exps.opt()[1].eta
-                @info "KL divergence [$(kl_epoch) within range] ... keeping learning rate as [$(round(lr, digits=4))] ."
+                # @info "KL divergence [$(kl_epoch) within range] ... keeping learning rate as [$(round(lr, digits=4))]"
             end
 
         end
