@@ -142,7 +142,9 @@ mutable struct Experiences
                 e._elo.addGame(id_1, id_2, score)
                 # add experiences
                 for (s, pi, v) in game
-                    e.addExperience(s, pi, v, id_1, id_2)
+                    if id_1 == 1 # only add experience from the main agent
+                        e.addExperience(s, pi, v, id_1, id_2)
+                    end
                     id_1, id_2 = id_2, id_1 # switch position
                 end
                 return HTTP.Response(200, "OK")
@@ -177,13 +179,15 @@ mutable struct Experiences
             # get a match
             HTTP.register!(router, "GET", "/match", (req) -> begin
                 if e._elo.activeSize() <= 0
-                    return HTTP.Response(400, Dict("Content-Type" => "application/json"), body=JSON.json(()))
-                elseif e._elo.activeSize() == 1
-                    id_1, id_2 = e._elo.selfMatch(first(e._elo.activePlayers()))
-                    return HTTP.Response(200, Dict("Content-Type" => "application/json"), body=JSON.json((id_1, id_2)))
+                    return HTTP.Response(400, Dict("Content-Type" => "application/json"), body=JSON.json((1, 1)))
+                    # elseif e._elo.activeSize() == 1
+                    #     id_1, id_2 = e._elo.selfMatch(first(e._elo.activePlayers()))
+                    #     return HTTP.Response(200, Dict("Content-Type" => "application/json"), body=JSON.json((id_1, id_2)))
                 else
-                    id_1, id_2 = e._elo.sampleMatch()
-                    return HTTP.Response(200, Dict("Content-Type" => "application/json"), body=JSON.json((id_1, id_2)))
+                    id_active = e._elo.randActive()
+                    return HTTP.Response(200, Dict("Content-Type" => "application/json"), body=JSON.json((1, id_active)))
+                    # id_1, id_2 = e._elo.sampleMatch()
+                    # return HTTP.Response(200, Dict("Content-Type" => "application/json"), body=JSON.json((id_1, id_2)))
                 end
             end)
 

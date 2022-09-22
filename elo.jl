@@ -38,6 +38,7 @@ mutable struct Elo
     # active players
     activePlayers::Function
     activeSize::Function
+    randActive::Function
     activeAvgRating::Function
     makeActive::Function
     makeInactive::Function
@@ -76,6 +77,7 @@ mutable struct Elo
         """Player info"""
         e.playerInfo = () -> begin
             dict = Dict(
+                "main" => e._ratings[1],
                 "average" => e.activeAvgRating(),
                 "active" => map(x -> [x, e._ratings[x]], collect(e._activePlayers)),
                 "candidate" => map(x -> [x, e._ratings[x]], collect(e._candidatePlayers)),
@@ -133,6 +135,14 @@ mutable struct Elo
 
         """Active size"""
         e.activeSize = () -> length(e._activePlayers)
+
+        """Random active player"""
+        e.randActive = () -> begin
+            if length(e._activePlayers) == 0
+                return nothing
+            end
+            return rand(collect(e._activePlayers))
+        end
 
         """Active average rating"""
         e.activeAvgRating = () -> e.activeSize() == 0 ? 2000 : round(Int, sum(map(x -> e._ratings[x], collect(e._activePlayers))) / e.activeSize())
