@@ -39,7 +39,7 @@ function infer_playout(i::Int)
     serialize(io, (id_first, id_second, normalized_score, experiences))
 
     url = "$(URL_BASE)/game"
-    @info "Posting game [$(url)] [$(id_first) $(tk_first)] vs [$(id_second) $(tk_second)] [$(normalized_score)] [len = $(length(experiences))]"
+    @info "Posting game [$(url)] [$(id_first) : $(tk_first)] vs [$(id_second) : $(tk_second)] [$(normalized_score)] [len = $(length(experiences))]"
     r = HTTP.request(:POST, url, body=take!(io))
     @info "Posted experiences [$(url)] [status = $(r.status)]"
 
