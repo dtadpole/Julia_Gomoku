@@ -123,7 +123,7 @@ mutable struct Train
 
             data_loader = Flux.Data.DataLoader((states, pis, vs), batchsize=BATCH_SIZE, shuffle=true)
 
-            progress_tracker = Progress(length(data_loader), 1, "Training epoch $(epoch): ")
+            progress_tracker = Progress(length(data_loader), dt=0.2, desc="Training epoch $(epoch): ")
 
             # keeps a list of kl divergence
             kl_list = Vector{Float32}()
