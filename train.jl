@@ -288,6 +288,7 @@ mutable struct Train
             model_filepath = model_filename(player_id)
             @info "Save model [$(player_id)] [$(model_filepath)] : [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]"
             model_.save(model_filepath)
+            model_.save(model_filename(1)) # always save another copy for id = 1
 
             # save optimizer
             opt_ = t._exps.opt()
