@@ -32,13 +32,13 @@ function infer_playout(i::Int)
 
     id_first, id_second = game_init_turn > 0 ? (id_1, id_2) : (id_2, id_1)
 
-    # normalized_score = game_init_turn > 0 ? game_score : -game_score
+    normalized_score = game_init_turn > 0 ? game_score : -game_score
 
     io = IOBuffer()
-    serialize(io, (id_first, id_second, game_score, experiences))
+    serialize(io, (id_first, id_second, normalized_score, experiences))
 
     url = "$(URL_BASE)/game"
-    @info "Posting game [$(url)] [$(id_first) vs $(id_second)] [$(game_score)] [len = $(length(experiences))]"
+    @info "Posting game [$(url)] [$(id_first) vs $(id_second)] [$(normalized_score)] [len = $(length(experiences))]"
     r = HTTP.request(:POST, url, body=take!(io))
     @info "Posted experiences [$(url)] [status = $(r.status)]"
 
