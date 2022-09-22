@@ -3,6 +3,7 @@ include("./elo.jl")
 
 using HTTP
 using Random
+using JSON
 
 const _WEIGHTS = 1:floor(Int, args["exp_max"] * 2)
 
