@@ -134,6 +134,13 @@ mutable struct Train
             loss_v_list = Vector{Float32}()
             loss_entropy_list = Vector{Float32}()
 
+            # loss_avg = 0.0f0
+            # loss_pi_avg = 0.0f0
+            # loss_v_avg = 0.0f0
+            # loss_entropy_avg = 0.0f0
+
+            msg = ""
+
             # params
             params = t._exps.model().params()
 
@@ -207,21 +214,21 @@ mutable struct Train
             @info "Training epoch [$(epoch)] $(msg)"
 
             # check for kl divergence
-            kl_epoch = mean(kl_list)
+            kl_epoch = round(mean(kl_list), digits=4)
 
             if kl_epoch > args["train_kl_target"] * 2.0
                 new_lr = max(t._exps.opt()[1].eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
-                @info "KL divergence [$(round(kl_epoch, digits=4)) > $(args["train_kl_target"]) × 2.0] ... reducing learning rate to [$(round(new_lr, digits=4))] ."
+                @info "KL divergence [$(kl_epoch) > $(args["train_kl_target"]) × 2.0] ... reducing learning rate to [$(round(new_lr, digits=4))] ."
                 # update learning rate
                 t._exps.opt()[1].eta = new_lr
             elseif kl_epoch < args["train_kl_target"] / 2.0
                 new_lr = min(t._exps.opt()[1].eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
-                @info "KL divergence [$(round(kl_epoch, digits=4)) < $(args["train_kl_target"]) ÷ 2.0] ... increasing learning rate to [$(round(new_lr, digits=4))] ."
+                @info "KL divergence [$(kl_epoch) < $(args["train_kl_target"]) ÷ 2.0] ... increasing learning rate to [$(round(new_lr, digits=4))] ."
                 # update learning rate
                 t._exps.opt()[1].eta = new_lr
             else
                 lr = t._exps.opt()[1].eta
-                @info "KL divergence [$(round(kl_epoch, digits=4)) within range] ... keeping learning rate as [$(round(lr, digits=4))] ."
+                @info "KL divergence [$(kl_epoch) within range] ... keeping learning rate as [$(round(lr, digits=4))] ."
             end
 
         end
