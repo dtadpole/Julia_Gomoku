@@ -205,7 +205,7 @@ function parse_commandline()
         "--elo_below_main_cutoff"
         help = "elo below main cutoff"
         arg_type = Int
-        default = 80
+        default = 64
 
         "--elo_k_value"
         help = "elo k value"
