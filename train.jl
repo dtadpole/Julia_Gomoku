@@ -151,7 +151,7 @@ mutable struct Train
                 # convert from visit count to distribution
                 pa = softmax(log.(pi .+ 1e-8), dims=[1, 2])
 
-                @info "sizes" size(state) size(pa) size(v)
+                # @info "sizes" size(state) size(pa) size(v)
 
                 loss_tuple, back = pullback(params) do
                     t._exps.model().loss(state, pa, v) # [IMPORTANT] use normalized distribution pa !!
