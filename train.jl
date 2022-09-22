@@ -157,12 +157,14 @@ mutable struct Train
                     t._exps.model().loss(state, pa, v) # [IMPORTANT] use normalized distribution pa !!
                 end
 
-                grads = back((1.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 0.0f0))
-
-                Flux.update!(t._exps.opt(), params, grads)
+                # calculate gradients
+                grads = back((1.0f0, 0.0f0, 0.0f0, 0.0f0))
 
                 # get loss components
-                new_loss, new_pi, new_v, loss_pi, loss_v, loss_entropy = loss_tuple
+                new_loss, loss_pi, loss_v, loss_entropy = loss_tuple
+
+                # train
+                Flux.update!(t._exps.opt(), params, grads)
 
                 if !args["exp_sample_sequential"]
                     t._exps.addtrainedBatch(1)
@@ -180,6 +182,9 @@ mutable struct Train
                 loss_entropy_avg = round(mean(loss_entropy_list), digits=2)
 
                 msg = "[$(loss_avg) = $(loss_pi_avg),π + $(loss_v_avg),ν - $(args["model_loss_coef_entropy"]) × $(loss_entropy_avg),H]"
+
+                # calculate new policy
+                new_pi, _ = t._exps.model().forward(state)
 
                 # calculate KL divergence
                 kl_sum = sum(prev_pi .* (log.(prev_pi) .- log.(new_pi)), dims=[1, 2])
