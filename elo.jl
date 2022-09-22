@@ -152,12 +152,12 @@ mutable struct Elo
             # check if player is candidate
             if id ∈ e._candidatePlayers
                 delete!(e._candidatePlayers, id) # delete from candidate list
-                push!(e._log, "Player $(id) removed from candidate.  $(e.playerInfo()["candidate"])")
+                push!(e._log, "Player [$(id), $(e.rating(id))] removed from candidate.  $(e.playerInfo()["candidate"])")
             end
             # check if player is active
             if id ∉ e._activePlayers
                 push!(e._activePlayers, id)
-                push!(e._log, "Player $(id) added to active.  $(e.playerInfo()["active"])")
+                push!(e._log, "Player [$(id), $(e.rating(id))] added to active.  $(e.playerInfo()["active"])")
             end
         end
 
@@ -165,7 +165,7 @@ mutable struct Elo
         e.makeInactive = (id) -> begin
             if id ∈ e._activePlayers
                 delete!(e._activePlayers, id)
-                push!(e._log, "Player $(id) removed from active.  $(e.playerInfo()["active"])")
+                push!(e._log, "Player [$(id), $(e.rating(id))] removed from active.  $(e.playerInfo()["active"])")
             end
         end
 
@@ -187,7 +187,7 @@ mutable struct Elo
         e.makeCandidate = (id) -> begin
             if id ∉ e._candidatePlayers
                 push!(e._candidatePlayers, id)
-                push!(e._log, "Player $(id) added to candidate.  $(e.playerInfo()["candidate"])")
+                push!(e._log, "Player [$(id), $(e.rating(id))] added to candidate.  $(e.playerInfo()["candidate"])")
             end
         end
 
