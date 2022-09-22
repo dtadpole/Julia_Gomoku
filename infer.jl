@@ -28,7 +28,7 @@ function infer_playouts()
 
             io = IOBuffer(r.body)
             id_1, id_2 = JSON.parse(io)
-            @info "Requested match [$(url)] : [$(r.status)] [$(id_1) vs $(id_2)]"
+            @info "Requested match [$(url)] : [status = $(r.status)] [$(id_1) vs $(id_2)]"
 
             model_1 = download_model(id_1)
             model_2 = download_model(id_2)
