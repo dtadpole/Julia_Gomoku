@@ -4,6 +4,7 @@ Distributions
 Flux
 HTTP
 JLD
+JSON
 Serialization
 StatsBase
 Unzip
