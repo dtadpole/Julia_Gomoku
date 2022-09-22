@@ -134,11 +134,6 @@ mutable struct Train
             loss_v_list = Vector{Float32}()
             loss_entropy_list = Vector{Float32}()
 
-            # loss_avg = 0.0f0
-            # loss_pi_avg = 0.0f0
-            # loss_v_avg = 0.0f0
-            # loss_entropy_avg = 0.0f0
-
             msg = ""
 
             # params
@@ -152,13 +147,8 @@ mutable struct Train
                     v = v |> gpu
                 end
 
-                # calculate previous policy
-                # prev_pi, _ = t._exps.model().forward(state)
-
                 # convert from visit count to distribution
                 pa = softmax(log.(pi .+ 1e-8), dims=[1, 2])
-
-                # @info "sizes" size(state) size(pa) size(v)
 
                 loss_tuple, back = pullback(params) do
                     t._exps.model().loss(state, pa, v) # [IMPORTANT] use normalized distribution pa !!
