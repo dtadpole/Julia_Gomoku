@@ -133,10 +133,10 @@ function parse_commandline()
         arg_type = Int
         default = 100_000
 
-        "--exp_trained_batch"
+        "--exp_max_trained_batch"
         help = "maximum trained batch count"
         arg_type = Int
-        default = 10_000
+        default = 20_000
 
         "--exp_preserve_ratio"
         help = "experience preserve ratio"

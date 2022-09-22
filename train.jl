@@ -326,7 +326,7 @@ mutable struct Train
 
                 try
                     # check trained batch count, exit if exceeded maximum
-                    if t._exps.trainedBatch() > args["exp_trained_batch"]
+                    if t._exps.trainedBatch() > args["exp_max_trained_batch"]
                         exit(0)
                     end
 
