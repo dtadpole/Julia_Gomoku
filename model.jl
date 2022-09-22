@@ -1,12 +1,21 @@
 include("./game.jl")
 
 using Flux
+using Zygote
 using CUDA
 using JLD
 using Serialization
 using HTTP
 
 global URL_BASE = URL_BASE = "http://$(args["exp_server"]):$(args["exp_port"])"
+
+"""Model filename"""
+model_filename = (id::Int; size=args["game_size"], tag="curr") -> begin
+    model_path = "./trained/$(size)x$(size)/model_$(id).$(tag)"
+    ensure_filepath(model_path)
+    return model_path
+end
+
 
 # custom split layer
 struct Split{T}
@@ -19,33 +28,17 @@ Flux.@functor Split
 
 (m::Split)(x::AbstractArray) = map(f -> f(x), m.paths)
 
-"""backup file"""
-function backup_file(filename)
-    filename_bak = "$(filename).bak"
-    filename_bak_bak = "$(filename_bak).bak"
-    # if isfile(filename_bak_bak)
-    #     mv(filename_bak_bak, "$(filename_bak_bak).bak", force=true)
-    # end
-    if isfile(filename_bak)
-        mv(filename_bak, filename_bak_bak, force=true)
-    end
-    if isfile(filename)
-        mv(filename, filename_bak, force=true)
-    end
-    return nothing
-end
-
 """download model"""
-function download_model(id::Int; prev_model=nothing)
+function download_model(id::Int)
 
     global URL_BASE
 
     url = "$(URL_BASE)/model/$(id)"
 
     r = HTTP.request(:GET, "$(url)")
-    @info "[$(id)] Requested model [$(url)] : [status = $(r.status)]"
+    @info "Requested model [$(url)] : [status = $(r.status)]"
     io = IOBuffer(r.body)
-    _id, _size, _channels, _chain = deserialize(io)
+    _size, _channels, _chain = deserialize(io)
 
     # move model to CPU if needed
     if args["model_cuda"] >= 0
@@ -58,9 +51,9 @@ function download_model(id::Int; prev_model=nothing)
     # testmode!(model)
 
     params_size = sum([length(l) for l in Flux.params(model._model)])
-    @info "[$(id)] Loaded model [$(url)] : [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]" model._model
+    @info "Loaded model [$(url)] : [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]" model._model
 
-    return _id, model
+    return model
 
 end
 
@@ -150,19 +143,21 @@ mutable struct Model
 
         """Save"""
         m.save = (path) -> begin
-            io = open(path, "w")
-            serialize(io, (m.size(), m.channels(), m._model))
-            close(io)
+            backup_file(path)
+            open(path, "w") do io
+                serialize(io, (m.size(), m.channels(), m._model |> cpu))
+            end
         end
 
         """Load"""
         m.load = (path) -> begin
-            io = open(path, "r")
-            size, channels, model = deserialize(io)
-            m._size = size
-            m._channels = channels
-            Flux.loadmodel!(m._model, model)
-            close(io)
+            open(path, "r") do io
+                size, channels, model = deserialize(io)
+                m._size = size
+                m._channels = channels
+                Flux.loadmodel!(m._model, model)
+                return m
+            end
         end
 
         """Clone"""

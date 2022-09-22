@@ -1,3 +1,5 @@
+include("./util.jl")
+
 using ArgParse
 using CUDA
 
@@ -166,6 +168,11 @@ function parse_commandline()
         arg_type = Int
         default = 12
 
+        "--eval_id"
+        help = "eval id"
+        arg_type = Int
+        default = 1
+
         "--player_1"
         help = "player 1"
         arg_type = String
@@ -178,16 +185,17 @@ function parse_commandline()
         range_tester = (x -> x ∈ ["server", "curr", "best", "human"])
         default = "best"
 
-        "--population_size"
-        help = "population size"
+        "--population_min"
+        help = "population min size"
         arg_type = Int
-        range_tester = (x -> x >= 1)
-        default = 1
+        range_tester = (x -> x >= 2)
+        default = 4
 
-        "--population_allow_self_play"
-        help = "population allow self play"
-        arg_type = Bool
-        default = true
+        "--population_max"
+        help = "population man size"
+        arg_type = Int
+        range_tester = (x -> x >= 5)
+        default = 7
 
     end
 

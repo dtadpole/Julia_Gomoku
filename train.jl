@@ -1,14 +1,32 @@
 include("./exp.jl")
 
+using ProgressMeter: Progress, next!
+
 using Unzip
 # unzip(a) = map(x -> getfield.(a, x), fieldnames(eltype(a)))
 
+"""Opt path"""
+opt_filename = (id::Int) -> begin
+    opt_path = "./trained/$(t.size())x$(t.size())/opt_$(id).curr"
+    ensure_filepath(opt_path)
+    return opt_path
+end
+
+"""Exp path"""
+exp_filename = (id::Int) -> begin
+    exp_path = "./trained/$(t.size())x$(t.size())/exp_$(id).curr"
+    ensure_filepath(exp_path)
+    return exp_path
+end
+
+"""Save optimizer"""
 function save_optimizer(path::String, opt::Flux.Optimise.Optimiser)
     open(path, "w") do io
         serialize(io, opt)
     end
 end
 
+"""Load optimizer"""
 function load_optimizer(path::String)
     open(path, "r") do io
         return deserialize(io)
@@ -27,114 +45,82 @@ mutable struct Train
     train::Function
 
     # constructor
-    function Train(id_list::Vector{Int})
+    function Train()
 
         t = new()
 
         """Size"""
         t.size = () -> args["game_size"]
 
-        """Model path"""
-        t.modelPath = (id::Int; tag = "curr") -> begin
-            model_path = "./trained/$(id)/model_$(t.size())x$(t.size()).$(tag)"
-            if !isdir(dirname(model_path))
-                mkpath(dirname(model_path))
-            end
-            return model_path
-        end
-
-        """Opt path"""
-        t.optPath = (id::Int) -> begin
-            opt_path = "./trained/$(id)/opt_$(t.size())x$(t.size()).curr"
-            if !isdir(dirname(opt_path))
-                mkpath(dirname(opt_path))
-            end
-            return opt_path
-        end
-
-        """Exp path"""
-        t.expPath = (id::Int) -> begin
-            exp_path = "./trained/$(id)/exp_$(t.size())x$(t.size()).curr"
-            if !isdir(dirname(exp_path))
-                mkpath(dirname(exp_path))
-            end
-            return exp_path
-        end
-
-        # initialize models, optimizers
-        model_list = Vector{Model}()
-        opt_list = Vector{Flux.Optimise.Optimiser}()
-
-        for id in id_list
-
-            # initialize model
-            model = Model(args["game_size"], channels=args["model_channels"])
-            params_size = sum([length(l) for l in Flux.params(model._model)])
-            @info "[$(id)] Initialize Model [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
-            # load model if exists
-            model_filename = t.modelPath(id)
-            if isfile(model_filename)
-                @info repeat("-", 50)
-                @info "[$(id)] Loading Model from [$(model_filename)] ..."
-                model.load(model_filename)
-                @info "[$(id)] Loaded Model [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]" model._model
-            end
-            push!(model_list, model)
-
-            # initialize optimizer
-            opt = AdamW(args["learning_rate"], (args["adamw_beta1"], args["adamw_beta2"]), args["adamw_weight_decay"])
-            @info "[$(id)] Initialize Optimizer [η=$(round(opt[1].eta, digits=4)), β=$(round.(opt[1].beta, digits=4)), δ=$(opt[2].wd)]"
-            # load optimizer if exists
-            opt_filename = t.optPath(id)
-            if isfile(opt_filename)
-                @info repeat("-", 50)
-                @info "[$(id)] Loading Optimizer from [$(opt_filename)] ..."
-                opt = load_optimizer(opt_filename)
-                @info "[$(id)] Loaded Optimizer [η=$(round(opt[1].eta, digits=4)), β=$(round.(opt[1].beta, digits=4)), δ=$(opt[2].wd)]"
-            end
-            # move to gpu
-            if args["model_cuda"] >= 0
-                opt = opt |> gpu
-            end
-            push!(opt_list, opt)
-
-        end
-
-        # initialize experiences
-        t._experiences = Experiences(model_list, opt_list)
-
-        for id in id_list
-            # load experiences if exists
-            exp_filename = t.expPath(id)
-            if isfile(exp_filename)
-                @info repeat("-", 50)
-                @info "[$(id)] Loading Experiences from [$(exp_filename)] ..."
-                t._experiences.load(id, exp_filename)
-                @info "[$(id)] Loaded Experiences [len=$(t._experiences.length(id)), total=$(t._experiences.totalCount(id)), trained=$(t._experiences.trainedBatch(id))]"
-            end
-        end
-
-        # start experiences server
-        @info repeat("=", 50)
-        t._experiences.startServer()
-
         """Parameters"""
         BATCH_SIZE = args["train_batch_size"]
         BATCH_NUM = args["train_batch_num"]
         TRAIN_EPOCHS = args["train_epochs"]
 
-        """Train epoch"""
-        function train_epoch(id::Int, epoch::Int)
+        function init_training()
 
-            @info "[$(id)] Training epoch [$(epoch)] started [len=$(t._experiences.length(id)), tot=$(t._experiences.totalCount(id)), trn=$(t._experiences.trainedBatch(id))] ..."
-
-            if args["exp_sample_sequential"]
-                # re-sample each epoch
-                (states, pis, vs) = t._experiences.sampleExperience(id, BATCH_SIZE * BATCH_NUM)
-            else
-                # re-sample each epoch
-                (states, pis, vs) = t._experiences.sampleExperience(id, BATCH_SIZE * BATCH_NUM)
+            # initialize model
+            model_ = Model(args["game_size"], channels=args["model_channels"])
+            params_size = sum([length(l) for l in Flux.params(model_._model)])
+            @info "Initialize Model [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]"
+            # load model if exists
+            model_filename = model_filename(1)
+            if isfile(model_filename)
+                @info repeat("-", 50)
+                @info "Loading Model from [$(model_filename)] ..."
+                model_.load(model_filename)
+                @info "Loaded Model [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]" model_._model
             end
+
+            # initialize optimizer
+            opt_ = AdamW(args["learning_rate"], (args["adamw_beta1"], args["adamw_beta2"]), args["adamw_weight_decay"])
+            @info "Initialize Optimizer [η=$(round(opt_[1].eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
+            # load optimizer if exists
+            opt_filename = opt_filename(1)
+            if isfile(opt_filename)
+                @info repeat("-", 50)
+                @info "Loading Optimizer from [$(opt_filename)] ..."
+                opt_ = load_optimizer(opt_filename)
+                @info "Loaded Optimizer [η=$(round(opt_[1].eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
+            end
+            # move to gpu
+            if args["model_cuda"] >= 0
+                opt_ = opt_ |> gpu
+            end
+
+            # initialize experiences
+            t._experiences = Experiences(model_, opt_)
+            id_ = t._experiences.elo().newPlayer()
+            @info "Initialize Experiences [Player ID = $(id_)]"
+
+            # load experiences if exists
+            exp_filename = exp_filename(1)
+            if isfile(exp_filename)
+                @info repeat("-", 50)
+                @info "Loading Experiences from [$(exp_filename)] ..."
+                t._experiences.load(exp_filename)
+                @info "Loaded Experiences [len=$(t._experiences.length(id)), total=$(t._experiences.totalCount(id)), trained=$(t._experiences.trainedBatch(id))]"
+            end
+
+            # start experiences server
+            @info repeat("=", 50)
+            t._experiences.startServer()
+
+        end
+
+        init_training()
+
+        """Train epoch"""
+        function train_epoch(epoch::Int)
+
+            @info "Training epoch [$(epoch)] started [len=$(t._experiences.length()), tot=$(t._experiences.totalCount()), trn=$(t._experiences.trainedBatch())] ..."
+
+            # re-sample each epoch
+            (states, pis, vs) = t._experiences.sampleExperience(id, BATCH_SIZE * BATCH_NUM)
+
+            data_loader = Flux.Data.DataLoader((states, pis, vs), batchsize=BATCH_SIZE, shuffle=true)
+
+            progress_tracker = Progress(length(data_loader), 1, "Training epoch $(epoch): ")
 
             # keeps a list of kl divergence
             kl_list = Vector{Float32}()
@@ -145,11 +131,7 @@ mutable struct Train
             loss_v_list = Vector{Float32}()
             loss_entropy_list = Vector{Float32}()
 
-            for batch in 1:BATCH_NUM
-
-                state = states[:, :, :, (batch-1)*BATCH_SIZE+1:batch*BATCH_SIZE]
-                pi = pis[:, :, (batch-1)*BATCH_SIZE+1:batch*BATCH_SIZE]
-                v = vs[:, (batch-1)*BATCH_SIZE+1:batch*BATCH_SIZE]
+            for (state, pi, v) in data_loader
 
                 if args["model_cuda"] >= 0
                     state = state |> gpu
@@ -165,20 +147,21 @@ mutable struct Train
                 # convert from visit count to distribution
                 pa = softmax(log.(pi .+ 1e-8), dims=[1, 2])
 
-                lossF = () -> t._experiences.model(id).loss(state, pa, v)[1]  # [IMPORTANT] use normalized distribution pa !!
-                params = t._experiences.model(id).params()
-                grads = gradient(lossF, params)
+                params = t._experiences.model().params()
+                loss_tuple, back = pullback(params) do
+                    t._experiences.model(id).loss(state, pa, v)  # [IMPORTANT] use normalized distribution pa !!
+                end
 
-                Flux.Optimise.update!(t._experiences.opt(id), params, grads)
+                grads = back((1.0, 0.0, 0.0))
+
+                Flux.update!(t._experiences.opt(), params, grads)
+
+                # get loss components
+                new_loss, loss_pi, loss_v, loss_entropy, new_pi, ne
 
                 if !args["exp_sample_sequential"]
                     t._experiences.addtrainedBatch(id, 1)
                 end
-
-                # calculate new policy
-                new_loss, loss_pi, loss_v, loss_entropy, new_pi, new_v = t._experiences.model(id).loss(state, pa, v)
-
-                # @info "new sizes" size(new_loss) size(new_pi) size(new_v)
 
                 # keep track of loss
                 push!(loss_list, new_loss |> cpu)
@@ -186,8 +169,14 @@ mutable struct Train
                 push!(loss_v_list, loss_v |> cpu)
                 push!(loss_entropy_list, loss_entropy |> cpu)
 
-                # extract prev policy
-                # prev_pi = prev_policy[:, :, (batch-1)*BATCH_SIZE+1:batch*BATCH_SIZE]
+                next!(progress_tracker; showvalues=[
+                    (:loss, round(loss_avg, digits=2)),
+                    (:curr, round(loss_curr, digits=2)),
+                    (:recon, round(loss_recon, digits=2)),
+                    (:kl, round(loss_kl, digits=2)),
+                    (:mu, round.(mu, digits=2)),
+                    (:sigma, round.(sigma, digits=2)),
+                ])
 
                 # calculate KL divergence
                 kl_sum = sum(prev_pi .* (log.(prev_pi) .- log.(new_pi)), dims=[1, 2])
@@ -199,7 +188,7 @@ mutable struct Train
 
                 # check if kl divergence is too high, break early if so
                 if kl_mean > 4 * args["train_kl_target"]
-                    @info "[$(id)] KL divergence [$(round(kl_mean, digits=4)) > 4 * $(args["train_kl_target"])] ... stopping early ."
+                    @info "KL divergence [$(round(kl_mean, digits=4)) > 4 * $(args["train_kl_target"])] ... stopping early ."
                     break
                 end
 
@@ -210,52 +199,52 @@ mutable struct Train
             v_epoch = round(mean(loss_v_list), digits=3)
             entropy_epoch = round(mean(loss_entropy_list), digits=2)
 
-            @info "[$(id)] Training epoch [$(epoch)] updated [loss : $(loss_epoch) = $(pi_epoch),π + $(v_epoch),v - $(args["model_loss_coef_entropy"]) * $(entropy_epoch),H]"
+            @info "Training epoch [$(epoch)] updated [loss : $(loss_epoch) = $(pi_epoch),π + $(v_epoch),v - $(args["model_loss_coef_entropy"]) * $(entropy_epoch),H]"
 
             # check for kl divergence
             kl_epoch_mean = mean(kl_list)
 
             if kl_epoch_mean > args["train_kl_target"] * 2.0
                 new_learning_rate = max(t._experiences.opt(id)[1].eta / 1.5, args["learning_rate"] / args["learning_rate_range"])
-                @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) > $(args["train_kl_target"]) * 2.0] ... reducing learning rate to [$(round(new_learning_rate, digits=4))] ."
+                @info "KL divergence [$(round(kl_epoch_mean, digits=4)) > $(args["train_kl_target"]) * 2.0] ... reducing learning rate to [$(round(new_learning_rate, digits=4))] ."
                 # update learning rate
                 t._experiences.opt(id)[1].eta = new_learning_rate
             elseif kl_epoch_mean < args["train_kl_target"] / 2.0
                 new_learning_rate = min(t._experiences.opt(id)[1].eta * 1.5, args["learning_rate"] * args["learning_rate_range"])
-                @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) < $(args["train_kl_target"]) / 2.0] ... increasing learning rate to [$(round(new_learning_rate, digits=4))] ."
+                @info "KL divergence [$(round(kl_epoch_mean, digits=4)) < $(args["train_kl_target"]) / 2.0] ... increasing learning rate to [$(round(new_learning_rate, digits=4))] ."
                 # update learning rate
                 t._experiences.opt(id)[1].eta = new_learning_rate
             else
                 learning_rate = t._experiences.opt(id)[1].eta
-                @info "[$(id)] KL divergence [$(round(kl_epoch_mean, digits=4)) within range] ... keeping learning rate as [$(round(learning_rate, digits=4))] ."
+                @info "KL divergence [$(round(kl_epoch_mean, digits=4)) within range] ... keeping learning rate as [$(round(learning_rate, digits=4))] ."
             end
 
         end
 
         """Save trained model, optimizer, and experiences"""
-        function save_trained(id::Int)
+        function save_trained()
 
             # print separator
             @info repeat("-", 50)
 
             # save model
-            model_ = t._experiences.model(id)
+            model_ = t._experiences.model
             params_size = sum([length(l) for l in Flux.params(model_._model)])
-            model_filename = t.modelPath(id)
-            @info "[$(id)] Save model [$(model_filename)] : [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]"
+            model_filename = model_filename(1)
+            @info "Save model [$(model_filename)] : [$(model_.size())x$(model_.size()), c=$(model_.channels()), p=$(params_size)]"
             backup_file(model_filename)
             model_.save(model_filename)
 
             # save optimizer
-            opt_ = t._experiences.opt(id)
-            opt_filename = t.optPath(id)
-            @info "[$(id)] Save optimizer [$(opt_filename)] : [η=$(round(opt_[1].eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
+            opt_ = t._experiences.opt()
+            opt_filename = opt_filename(1)
+            @info "Save optimizer [$(opt_filename)] : [η=$(round(opt_[1].eta, digits=4)), β=$(round.(opt_[1].beta, digits=4)), δ=$(opt_[2].wd)]"
             backup_file(opt_filename)
             save_optimizer(opt_filename, opt_)
 
             # save experiences
-            exp_filename = t.expPath(id)
-            @info "[$(id)] Save experiences [$(exp_filename)] : [len=$(t._experiences.length(id)), tot=$(t._experiences.totalCount(id)), trn=$(t._experiences.trainedBatch(id))]"
+            exp_filename = exp_filename(1)
+            @info "Save experiences [$(exp_filename)] : [len=$(t._experiences.length(id)), tot=$(t._experiences.totalCount(id)), trn=$(t._experiences.trainedBatch(id))]"
             backup_file(exp_filename)
             t._experiences.save(id, exp_filename)
 
@@ -273,14 +262,11 @@ mutable struct Train
 
             while true
 
-                for id in id_list
-
-		    # check trained batch count, exit if exceeded maximum
-		    if t._experiences.trainedBatch(id) > args["exp_trained_batch"]
-		        exit(0)
-		    end
-
-                    # t._experiences.playGame() # do not play game in train server.  let the inference servers play games
+                try
+                    # check trained batch count, exit if exceeded maximum
+                    if t._experiences.trainedBatch(id) > args["exp_trained_batch"]
+                        exit(0)
+                    end
 
                     if (t._experiences.trainedBatch(id) * args["train_trim_ratio"] + BATCH_NUM * TRAIN_EPOCHS) * BATCH_SIZE < t._experiences.totalCount(id) * TRAIN_EPOCHS
 
@@ -289,51 +275,46 @@ mutable struct Train
 
                         sleep_count = 0
 
-                        try
-                            # print separator
-                            @info repeat("-", 50)
+                        # print separator
+                        @info repeat("-", 50)
 
-                            for epoch in 1:TRAIN_EPOCHS
-
-                                try
-                                    train_epoch(id, epoch)
-                                catch e
-                                    @error "Error" exception = (e, catch_backtrace())
-                                finally
-                                    if args["exp_sample_sequential"]
-                                        # always add BATCH_NUM to trainedBatch
-                                        t._experiences.addtrainedBatch(id, BATCH_NUM)
-                                    end
-                                    # GC & reclaim CUDA memory
-                                    GC.gc(true)
-                                    if args["model_cuda"] >= 0
-                                        CUDA.reclaim()
-                                    end
+                        for epoch in 1:TRAIN_EPOCHS
+                            try
+                                train_epoch(epoch)
+                            catch e
+                                @error "Error" exception = (e, catch_backtrace())
+                            finally
+                                if args["exp_sample_sequential"]
+                                    # always add BATCH_NUM to trainedBatch
+                                    t._experiences.addtrainedBatch(id, BATCH_NUM)
                                 end
-
+                                # GC & reclaim CUDA memory
+                                GC.gc(true)
+                                if args["model_cuda"] >= 0
+                                    CUDA.reclaim()
+                                end
                             end
-
-                        catch e
-
-                            @error "Error" exception = (e, catch_backtrace())
-
-                        finally
-
-                            if args["exp_sample_sequential"]
-                                # trip experiences by BATCH_SIZE * BATCH_NUM
-                                t._experiences.trimExperience(id, trunc(Int, BATCH_SIZE * BATCH_NUM * args["train_trim_ratio"]))
-                            end
-
-                            # save trained model, optimizer, and experiences
-                            save_trained(id)
-
                         end
+
+                        if args["exp_sample_sequential"]
+                            # trim experiences by BATCH_SIZE * BATCH_NUM
+                            t._experiences.trimExperience(id, trunc(Int, BATCH_SIZE * BATCH_NUM * args["train_trim_ratio"]))
+                        end
+
+                        # save trained model, optimizer, and experiences
+                        save_trained()
 
                     else
 
-                        @info "[$(id)] Training is waiting for more experiences [len=$(t._experiences.length(id)), tot=$(t._experiences.totalCount(id)), trn=$(t._experiences.trainedBatch(id))] ..."
+                        @info "Training is waiting for more experiences [len=$(t._experiences.length()), tot=$(t._experiences.totalCount()), trn=$(t._experiences.trainedBatch())] ..."
 
                     end
+
+                catch e
+
+                    @error "Error" exception = (e, catch_backtrace())
+
+                finally
 
                     # GC & reclaim CUDA memory
                     GC.gc(true)
@@ -341,11 +322,10 @@ mutable struct Train
                         CUDA.reclaim()
                     end
 
+                    sleep_count += 1
+
+                    sleep(sleep_time)
                 end
-
-                sleep_count += 1
-
-                sleep(sleep_time)
 
             end
 
@@ -360,6 +340,6 @@ end
 if abspath(PROGRAM_FILE) == @__FILE__
     @info repeat("=", 50)
     # train model[1] and model[2]
-    train = Train([id for id in 1:args["population_size"]])
+    train = Train()
     train.train()
 end

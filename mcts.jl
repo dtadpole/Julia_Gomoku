@@ -304,7 +304,7 @@ function mcts_play_game(model_1::Model, model_2::Model)
 
     end
 
-    return experiences, game_init_turn
+    return experiences, game_init_turn, game.score()
 
 end
 

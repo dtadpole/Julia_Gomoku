@@ -1,13 +1,38 @@
 include("./mcts.jl")
 
+function human_step(game::Game)
 
-"""Model path"""
-modelPath = (id::Int; size=args["game_size"], tag="curr") -> begin
-    model_path = "./trained/$(id)/model_$(size)x$(size).$(tag)"
-    if !isdir(dirname(model_path))
-        mkpath(dirname(model_path))
+    if game.is_over()
+        @error "Game is over"
+        return nothing
     end
-    return model_path
+
+    # get action
+    action = 0
+    while action == 0
+        print("What is your move : ")
+        move = strip(uppercase(readline()))
+        if move == ""
+            continue
+        end
+        if move[1] in ('A':'Z')
+            x = parse(Int, move[2:end])
+            y = (move[1] - 'A') + 1
+            action = CartesianIndex(x, y)
+        else
+            continue
+        end
+    end
+
+    # play action
+    game.play_action(action)
+    if args["game_display"]
+        # display
+        game.display()
+    end
+
+    return nothing
+
 end
 
 function model_step(game::Game, model::Model)
@@ -64,69 +89,34 @@ function model_step(game::Game, model::Model)
 
 end
 
-function human_step(game::Game)
-
-    if game.is_over()
-        @error "Game is over"
-        return nothing
-    end
-
-    # get action
-    action = 0
-    while action == 0
-        print("What is your move : ")
-        move = strip(uppercase(readline()))
-        if move == ""
-            continue
-        end
-        if move[1] in ('A':'Z')
-            x = parse(Int, move[2:end])
-            y = (move[1] - 'A') + 1
-            action = CartesianIndex(x, y)
-        else
-            continue
-        end
-    end
-
-    # play action
-    game.play_action(action)
-    if args["game_display"]
-        # display
-        game.display()
-    end
-
-    return nothing
-
-end
-
 function player_function(player::String; eval_id=1)
 
     if player == "curr"
 
-        filename = modelPath(eval_id; tag="curr")
+        filename = model_filename(eval_id; tag="curr")
         model = Model(args["game_size"], channels=args["model_channels"])
         model.load(filename)
         params_size = sum([length(l) for l in Flux.params(model._model)])
-        @info "[$(eval_id)] Loaded model [$(filename)] [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
+        @info "Loaded model [$(filename)] [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
         testmode!(model)
         return (game) -> model_step(game, model), model
 
     elseif player == "best"
 
-        filename = modelPath(eval_id; tag="best")
+        filename = model_filename(eval_id; tag="best")
         model = Model(args["game_size"], channels=args["model_channels"])
         if isfile(filename)
             # load model if best file exist
             model.load(filename)
             params_size = sum([length(l) for l in Flux.params(model._model)])
-            @info "[$(eval_id)] Loaded model [$(filename)] [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
+            @info "Loaded model [$(filename)] [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
         end
         testmode!(model)
         return (game) -> model_step(game, model), model
 
     elseif player == "server"
 
-        id, model = download_model(eval_id)
+        model = download_model(eval_id)
         testmode!(model)
         return (game) -> model_step(game, model), model
 
@@ -182,7 +172,7 @@ function eval_run(eval_id::Int)
     for i in 1:args["eval_playouts"]
         try
             @info repeat("-", 50)
-            @info "[$(eval_id)] Evaluation Iteration [$(i)] : [$(args["player_1"]) -> X] vs [$(args["player_2"]) -> O]"
+            @info "Evaluation Iteration [$(i)] : [$(args["player_1"]) -> X] vs [$(args["player_2"]) -> O]"
             @info repeat("-", 50)
             game_turn = rand() > 0.5 ? 1.0 : -1.0
             score = eval_playout(player1_function, player2_function; turn=game_turn)
@@ -194,24 +184,23 @@ function eval_run(eval_id::Int)
                 draws += 1
             end
         catch e
-            @error "[$(eval_id)] Error" exception = (e, catch_backtrace())
+            @error "Error" exception = (e, catch_backtrace())
             exit(1)
         finally
             @info repeat("-", 50)
-            @info "[$(eval_id)] Tally [$(i)] : [$(args["player_1"]) : $(player_1_wins)] vs [$(args["player_2"]) : $(player_2_wins)] , [$(draws) draws]"
+            @info "Tally [$(i)] : [$(args["player_1"]) : $(player_1_wins)] vs [$(args["player_2"]) : $(player_2_wins)] , [$(draws) draws]"
             sleep(1)
         end
     end
 
     @info repeat("=", 50)
-    @info "[$(eval_id)] [$(args["player_1"]) : $(player_1_wins)] vs [$(args["player_2"]) : $(player_2_wins)] , [$(draws) draws]"
+    @info "[$(args["player_1"]) : $(player_1_wins)] vs [$(args["player_2"]) : $(player_2_wins)] , [$(draws) draws]"
     if (args["player_1"] == "curr" || args["player_1"] == "server") && args["player_2"] == "best" && (player_1_wins - player_2_wins) >= args["eval_playouts"] / 2
         @info repeat("-", 50)
-        @info "[$(eval_id)] Replacing best model with current model ..."
-        best_filename = modelPath(eval_id; tag="best")
-        backup_file(best_filename)
+        @info "Replacing best model with current model ..."
+        best_filename = model_filename(eval_id; tag="best")
         model_1.save(best_filename)
-        @info "[$(eval_id)] Replaced best model with current model !"
+        @info "Replaced best model with current model !"
     end
     @info repeat("=", 50)
 
@@ -220,7 +209,5 @@ end
 
 if abspath(PROGRAM_FILE) == @__FILE__
     # eval_id ∈ [1, 2, 3, ...]
-    for eval_id in 1:args["population_size"]
-        eval_run(eval_id)
-    end
+    eval_run(args["eval_id"])
 end

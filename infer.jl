@@ -12,29 +12,38 @@ function infer_playouts()
 
         try
 
-            id_1, id_2 = sample(1:args["population_size"], 2, replace=args["population_allow_self_play"])
-
             @info repeat("-", 50)
             @info "Inference Iteration [$(i)] ..."
             @info repeat("-", 50)
 
-            # id_1, model_1 = download_model(1, prev_model=model_1) # reuse previous model_1 if exists
-            # id_2, model_2 = download_model(2, prev_model=model_2) # reuse previous model_2 if exists
-            sid_1, model_1 = download_model(id_1) # do NOT reuse previous model_1 if exists
-            sid_2, model_2 = download_model(id_2) # do NOT reuse previous model_2 if exists
+            url = "$(URL_BASE)/match"
+
+            r = HTTP.request(:GET, "$(url)")
+            if r.status != 200
+                @warn "Requested match [$(url)] : [status = $(r.status)]"
+                exit(1)
+            end
+
+            io = IOBuffer(r.body)
+            id_1, id_2 = deserialize(io)
+            @info "Requested match [$(url)] : [$(r.status)] [$(id_1) vs $(id_2)]"
+
+            model_1 = download_model(id_1)
+            model_2 = download_model(id_2)
 
             @info repeat("-", 50)
-            experiences, game_init_turn = mcts_play_game(model_1, model_2)
 
-            id_first, id_second = game_init_turn > 0 ? (sid_1, sid_2) : (sid_2, sid_1)
+            experiences, game_init_turn, game_score = mcts_play_game(model_1, model_2)
 
-            experiences_with_id = [(mod(step, 2) == 1 ? id_first : id_second, s, pi, v) for (step, (s, pi, v)) in enumerate(experiences)]
+            id_first, id_second = game_init_turn > 0 ? (id_1, id_2) : (id_2, id_1)
+
+            normalized_score = game_init_turn > 0 ? game_score : -game_score
 
             io = IOBuffer()
-            serialize(io, experiences_with_id)
+            serialize(io, (id_first, id_second, normalized_score, experiences))
 
             url = "$(URL_BASE)/experiences"
-            @info "Posting experiences [$(url)] [len = $(length(experiences))]"
+            @info "Posting experiences [$(url)] [$(id_first) vs $(id_second)] [s=$(normalized_score), l=$(length(experiences))]"
             r = HTTP.request(:POST, url, body=take!(io))
             @info "Posted experiences [$(url)] [status = $(r.status)]"
 
