@@ -96,7 +96,7 @@ function parse_commandline()
         "--train_kl_target"
         help = "train kl target"
         arg_type = Float32
-        default = Float32(0.01)
+        default = Float32(0.05)
 
         "--learning_rate"
         help = "learning rate"
@@ -205,7 +205,7 @@ function parse_commandline()
         "--elo_below_main_cutoff"
         help = "elo below main cutoff"
         arg_type = Int
-        default = 64
+        default = 80
 
         "--elo_k_value"
         help = "elo k value"
