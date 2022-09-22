@@ -269,7 +269,7 @@ mutable struct Train
                 end
 
                 # if we have two or more candidates, and we have not reached the max number of players
-                if t.elo().candidateSize() >= t.elo().activeSize() && t.elo().activeSize() < args["population_max"]
+                if t.elo().candidateSize() > t.elo().activeSize() && t.elo().activeSize() < args["population_max"]
                     t.elo().makeActive(t.elo().randCandidate()) # add a random candidate
                     t.elo().clearCandidates() # clear all candidates
                 end
