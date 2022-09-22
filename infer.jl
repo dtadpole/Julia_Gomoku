@@ -31,6 +31,7 @@ function infer_playout(i::Int)
     experiences, game_init_turn, game_score = mcts_play_game(model_1, model_2)
 
     id_first, id_second = game_init_turn > 0 ? (id_1, id_2) : (id_2, id_1)
+    tk_first, tk_second = game_init_turn > 0 ? ("X", "O") : ("O", "X")
 
     normalized_score = game_init_turn > 0 ? game_score : -game_score
 
@@ -38,7 +39,7 @@ function infer_playout(i::Int)
     serialize(io, (id_first, id_second, normalized_score, experiences))
 
     url = "$(URL_BASE)/game"
-    @info "Posting game [$(url)] [$(id_first) vs $(id_second)] [$(normalized_score)] [len = $(length(experiences))]"
+    @info "Posting game [$(url)] [$(id_first) $(tk_first)] vs [$(id_second) $(tk_second)] [$(normalized_score)] [len = $(length(experiences))]"
     r = HTTP.request(:POST, url, body=take!(io))
     @info "Posted experiences [$(url)] [status = $(r.status)]"
 
