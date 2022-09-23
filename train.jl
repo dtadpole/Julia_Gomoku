@@ -260,6 +260,22 @@ mutable struct Train
                 active_pool = t.elo().playerInfo()["active"]
                 active_avg_rating = t.elo().activeAvgRating()
 
+                # get the lowest elo rating player in the active pool
+                min_tuple = active_pool[argmin([p[1] == 1 ? typemax(Int) : p[2] for p in active_pool])]
+                if min_tuple[1] != 1 # if this is not the main agent
+                    id, rating = min_tuple
+                    # if this player is not the main agent and has a lower rating than the average rating of the active pool
+                    if rating < t.elo().rating(1) - args["elo_below_main_cutoff"] || rating < active_avg_rating - args["elo_below_avg_cutoff"]
+                        t.elo().makeInactive(id)
+                        # add from candidate pool if there are any
+                        if t.elo().candidateSize() > 0
+                            candidate_id = t.elo().randCandidate()
+                            t.elo().makeActive(candidate_id)
+                            t.elo().clearCandidates() # clear all candidates after adding one to active
+                        end
+                    end
+                end
+
                 # if too many active players, remove lowest elo player
                 while t.elo().activeSize() > args["population_max"]
                     min_tuple = active_pool[argmin([p[1] == 1 ? typemax(Int) : p[2] for p in active_pool])]
@@ -268,28 +284,11 @@ mutable struct Train
                     end
                 end
 
-                # check if any active player with rating < 1800, or is 120 elo below avg
-                for (id, rating) in active_pool
-                    if rating < t.elo().rating(1) - args["elo_below_main_cutoff"] || rating < active_avg_rating - args["elo_below_avg_cutoff"]
-                        if id != 1 # do not remove the first player
-                            t.elo().makeInactive(id)
-                            # add from candidate pool
-                            if t.elo().candidateSize() > 0
-                                candidate_id = t.elo().randCandidate()
-                                t.elo().makeActive(candidate_id)
-                                t.elo().clearCandidates() # clear all candidates after adding one to active
-                            end
-                            break
-                        end
-                    end
-                end
-
                 # if we have two or more candidates, and we have not reached the max number of players
                 if t.elo().candidateSize() > t.elo().activeSize() && t.elo().activeSize() < args["population_max"]
                     t.elo().makeActive(t.elo().randCandidate()) # add a random candidate
                     t.elo().clearCandidates() # clear all candidates
                 end
-
             end
 
             # print separator
