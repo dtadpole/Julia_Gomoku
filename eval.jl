@@ -1,6 +1,6 @@
 include("./mcts.jl")
 
-function human_step(game::Game)
+function human_step(game::Game; τ=0.0f0)
 
     if game.is_over()
         @error "Game is over"
@@ -35,7 +35,7 @@ function human_step(game::Game)
 
 end
 
-function model_step(game::Game, model::Model; θ=0.0f0)
+function model_step(game::Game, model::Model; τ=0.0f0)
 
     SIZE = game.size()
 
@@ -58,8 +58,8 @@ function model_step(game::Game, model::Model; θ=0.0f0)
 
     # policy distribution
     pi = node.rootN()
-    if θ > 1e-4
-        pa = softmax(log.(pi) / θ, dims=[1, 2])
+    if τ > 1e-4
+        pa = softmax(log.(pi) / τ, dims=[1, 2])
         action = sample(1:model.size()^2, ProbabilityWeights(reshape(pa, model.size()^2)))
         action = CartesianIndex(mod(action - 1, SIZE) + 1, div(action - 1, SIZE) + 1)
     else
@@ -70,7 +70,7 @@ function model_step(game::Game, model::Model; θ=0.0f0)
     game.play_action(action)
     if args["game_display"]
         duration = round(time() - start_time, digits=1)
-        @info "[$(-round(node.rootQ(), digits=2))] $(join(["($(game.str_action(a)), $(n))" for (a, n) in maxk(reshape(node.rootN(), SIZE^2), 5)], ", ")) [$(prior_N)->$(post_N), $(duration)s] "
+        @info "[$(-round(node.rootQ(), digits=2))] $(join(["($(game.str_action(a)), $(n))" for (a, n) in maxk(reshape(node.rootN(), SIZE^2), 5)], ", ")) [$(prior_N)->$(post_N), $(round(τ, digits=2))τ, $(duration)s]"
         # display
         game.display()
     end
@@ -87,7 +87,7 @@ function model_step(game::Game, model::Model; θ=0.0f0)
 
 end
 
-function player_function(player::String; eval_id=1, θ=0.0f0)
+function player_function(player::String; eval_id=1)
 
     if player == "curr"
 
@@ -97,7 +97,7 @@ function player_function(player::String; eval_id=1, θ=0.0f0)
         params_size = sum([length(l) for l in Flux.params(model._model)])
         @info "Loaded model [$(filename)] [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
         testmode!(model)
-        return (game) -> model_step(game, model, θ=θ), model
+        return (game; τ = 0.0f0) -> model_step(game, model, τ=τ), model
 
     elseif player == "best"
 
@@ -110,13 +110,13 @@ function player_function(player::String; eval_id=1, θ=0.0f0)
             @info "Loaded model [$(filename)] [$(model.size())x$(model.size()), c=$(model.channels()), p=$(params_size)]"
         end
         testmode!(model)
-        return (game) -> model_step(game, model, θ=θ), model
+        return (game; τ = 0.0f0) -> model_step(game, model, τ=τ), model
 
     elseif player == "server"
 
         model = download_model(eval_id)
         testmode!(model)
-        return (game) -> model_step(game, model, θ=θ), model
+        return (game; τ = 0.0f0) -> model_step(game, model, τ=τ), model
 
     elseif player == "human"
 
@@ -129,7 +129,7 @@ function player_function(player::String; eval_id=1, θ=0.0f0)
     end
 end
 
-function eval_playout(player1_function::Function, player2_function::Function; turn=1.0, θ=0.0f0)
+function eval_playout(player1_function::Function, player2_function::Function; turn=1.0, τ=0.0f0)
 
     game = Game(args["game_size"]; turn=turn)
     if args["game_display"]
@@ -137,15 +137,15 @@ function eval_playout(player1_function::Function, player2_function::Function; tu
     end
 
     if turn < 0
-        player2_function(game, θ=θ)
+        player2_function(game, τ=τ)
     end
 
     while !game.is_over()
 
         if game.turn() > 0
-            player1_function(game, θ=θ)
+            player1_function(game, τ=τ)
         else
-            player2_function(game, θ=θ)
+            player2_function(game, τ=τ)
         end
 
     end
@@ -172,10 +172,10 @@ function eval_run(eval_id::Int)
             # use one temperature for a full game
             TEMPERATURE = args["mcts_temperature_mean"] + args["mcts_temperature_std"] * randn()
             @info repeat("-", 50)
-            @info "Evaluation Iteration [$(i)] : [$(args["player_1"]) -> X] vs [$(args["player_2"]) -> O] [θ: $(round(TEMPERATURE, digits=2))]"
+            @info "Evaluation Iteration [$(i)] : [$(args["player_1"]) -> X] vs [$(args["player_2"]) -> O] [$(round(TEMPERATURE, digits=2)),τ]"
             @info repeat("-", 50)
             game_turn = rand() > 0.5 ? 1.0 : -1.0
-            score = eval_playout(player1_function, player2_function; turn=game_turn, θ=TEMPERATURE)
+            score = eval_playout(player1_function, player2_function; turn=game_turn, τ=TEMPERATURE)
             if score > 0
                 player_1_wins += 1
             elseif score < 0
