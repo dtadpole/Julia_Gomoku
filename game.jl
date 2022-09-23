@@ -162,7 +162,7 @@ mutable struct Game
                 print("       ")
                 for i in 1:g._size
                     # print("$(args["game_spot"]) $('A' + i - 1) ")
-                    print("$(args["game_space"])$('A' + i - 1) ")
+                    print(" $('Ａ' + i - 1) ")
                 end
                 println()
             end
