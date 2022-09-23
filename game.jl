@@ -151,7 +151,7 @@ mutable struct Game
         g.display = () -> begin
             displayLine() = begin
                 # print("    -")
-                print("     ")
+                print("       ")
                 for j in 1:g._size
                     # print(" $(args["game_spot"]) -")
                     print(" $(args["game_space"]) ")
@@ -159,7 +159,7 @@ mutable struct Game
                 println(" ")
             end
             displayLegend() = begin
-                print("     ")
+                print("       ")
                 for i in 1:g._size
                     # print("$(args["game_spot"]) $('A' + i - 1) ")
                     print("$(args["game_space"])$('A' + i - 1) ")
@@ -171,7 +171,7 @@ mutable struct Game
             for i in 1:g._size
                 displayLine()
                 # @printf(" %-2d |", i)
-                @printf("  %-2d ", i)
+                @printf("    %-2d ", i)
                 for j in 1:g._size
                     if g._board[i, j] > 0
                         if (i, j) == g._last_move
