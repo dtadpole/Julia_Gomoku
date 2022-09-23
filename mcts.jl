@@ -216,7 +216,7 @@ function mcts_play_game(model_1::Model, model_2::Model)
 
     SIZE = model_1.size()
 
-    TEMPERATURE = args["mcts_temperature"]
+    TEMPERATURE = args["mcts_temperature_mean"] + args["mcts_temperature_std"] * randn()
 
     dirichlet = Dirichlet(SIZE^2, args["mcts_noise_alpha"]) # create dirichlet distribution for noise
 

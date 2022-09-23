@@ -58,10 +58,15 @@ function parse_commandline()
         arg_type = Float32
         default = Float32(0.99)
 
-        "--mcts_temperature"
-        help = "mcts temperature"
+        "--mcts_temperature_mean"
+        help = "mcts temperature mean"
         arg_type = Float32
         default = Float32(0.75)
+
+        "--mcts_temperature_std"
+        help = "mcts temperature std"
+        arg_type = Float32
+        default = Float32(0.1)
 
         "--mcts_noise_alpha"
         help = "mcts noise dirichlet alpha"
