@@ -245,72 +245,66 @@ function mcts_play_game(model_1::Model, model_2::Model)
 
     while !game.is_over()
 
-        (() -> begin
+        if args["game_display"]
+            start_time = time()
+        end
 
-            if args["game_display"]
-                start_time = time()
-            end
-
-            # play
-            prior_N = node._N
-            while node._N < game.size()^2 * args["mcts_n_multiplier"]
-                (() -> begin
-                    node.travelBranch(args["mcts_depth"])
-                end)()
-                # GC & reclaim CUDA memory
-                if mod(node._N, 100) == 0
-                    GC.gc(true)
-                    if args["model_cuda"] >= 0
-                        CUDA.reclaim()
-                    end
+        # play
+        prior_N = node._N
+        while node._N < game.size()^2 * args["mcts_n_multiplier"]
+            node.travelBranch(args["mcts_depth"])
+            # GC & reclaim CUDA memory
+            if mod(node._N, 250) == 0
+                GC.gc(false)
+                if args["model_cuda"] >= 0
+                    CUDA.reclaim()
                 end
             end
-            post_N = node._N
+        end
+        post_N = node._N
 
-            # get distribution
-            pi = reshape(node.rootN(), (SIZE, SIZE))
-            v = node.rootQ()
-            push!(experiences, (game.state(), pi, v))
+        # get distribution
+        pi = reshape(node.rootN(), (SIZE, SIZE))
+        v = node.rootQ()
+        push!(experiences, (game.state(), pi, v))
 
-            # play action
-            if TEMPERATURE > 1e-4
-                # pa = softmax(log.(pi .+ 1e-8) / TEMPERATURE, dims=[1, 2])
-                pa = softmax(log.(pi) / TEMPERATURE, dims=[1, 2])
-                action = sample(1:SIZE^2, ProbabilityWeights(reshape(pa, SIZE^2)))
-                action = CartesianIndex(mod(action - 1, SIZE) + 1, div(action - 1, SIZE) + 1)
-            else
-                action = argmax(pi)
-            end
+        # play action
+        if TEMPERATURE > 1e-4
+            # pa = softmax(log.(pi .+ 1e-8) / TEMPERATURE, dims=[1, 2])
+            pa = softmax(log.(pi) / TEMPERATURE, dims=[1, 2])
+            action = sample(1:SIZE^2, ProbabilityWeights(reshape(pa, SIZE^2)))
+            action = CartesianIndex(mod(action - 1, SIZE) + 1, div(action - 1, SIZE) + 1)
+        else
+            action = argmax(pi)
+        end
 
-            game = game.clone()
-            game.play_action(action)
-            if args["game_display"]
-                duration = round(time() - start_time, digits=1)
-                @info "[$(-round(node.rootQ(), digits=2)),ν] [$(join(["$(game.str_action(a)):$(n)" for (a, n) in maxk(reshape(node.rootN(), SIZE^2), 5)], ", "))] [$(prior_N)->$(post_N), $(round(TEMPERATURE, digits=2))τ, $(duration)s] "
-                # display
-                game.display()
-            end
+        game = game.clone()
+        game.play_action(action)
+        if args["game_display"]
+            duration = round(time() - start_time, digits=1)
+            @info "[$(-round(node.rootQ(), digits=2)),ν] [$(join(["$(game.str_action(a)):$(n)" for (a, n) in maxk(reshape(node.rootN(), SIZE^2), 5)], ", "))] [$(prior_N)->$(post_N), $(round(TEMPERATURE, digits=2))τ, $(duration)s] "
+            # display
+            game.display()
+        end
 
-            # update mcts node
-            node = node._children[action]
-            node.clearParent()
+        # update mcts node
+        node = node._children[action]
+        node.clearParent()
 
-            # update mcts node opposite
-            if node_opposite._children !== nothing && node_opposite._children[action] !== nothing
-                node_opposite = node_opposite._children[action]
-                node_opposite.clearParent()
-            else
-                node_opposite = MctsNode(game, model_opposite; cpuct=args["mcts_cpuct"], gamma=args["mcts_gamma"], noise_epsilon=args["mcts_noise_epsilon"], dirichlet=dirichlet)
-            end
+        # update mcts node opposite
+        if node_opposite._children !== nothing && node_opposite._children[action] !== nothing
+            node_opposite = node_opposite._children[action]
+            node_opposite.clearParent()
+        else
+            node_opposite = MctsNode(game, model_opposite; cpuct=args["mcts_cpuct"], gamma=args["mcts_gamma"], noise_epsilon=args["mcts_noise_epsilon"], dirichlet=dirichlet)
+        end
 
-            # swap node and node_opposite
-            node, node_opposite = node_opposite, node
-            model, model_opposite = model_opposite, model
-
-        end)()
+        # swap node and node_opposite
+        node, node_opposite = node_opposite, node
+        model, model_opposite = model_opposite, model
 
         # GC & reclaim CUDA memory
-        GC.gc(true)
+        GC.gc(false)
         if args["model_cuda"] >= 0
             CUDA.reclaim()
         end

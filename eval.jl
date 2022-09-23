@@ -53,6 +53,13 @@ function model_step(game::Game, model::Model; τ=0.0f0)
     prior_N = node._N
     while node._N < game.size()^2 * args["mcts_n_multiplier"]
         node.travelBranch(args["mcts_depth"])
+        # GC & reclaim CUDA memory
+        if mod(node._N, 250) == 0
+            GC.gc(false)
+            if args["model_cuda"] >= 0
+                CUDA.reclaim()
+            end
+        end
     end
     post_N = node._N
 
@@ -76,7 +83,7 @@ function model_step(game::Game, model::Model; τ=0.0f0)
     end
 
     # GC & reclaim CUDA memory
-    GC.gc(true)
+    GC.gc(false)
     if args["model_cuda"] >= 0
         CUDA.reclaim()
         # CUDA.memory_status()
