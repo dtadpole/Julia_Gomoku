@@ -150,38 +150,47 @@ mutable struct Game
         """Display the game board."""
         g.display = () -> begin
             displayLine() = begin
-                print("    -")
+                # print("    -")
+                print("    ")
                 for j in 1:g._size
-                    print(" $(args["game_spot"]) -")
+                    # print(" $(args["game_spot"]) -")
+                    print(" $(args["game_space"]) ")
                 end
-                println()
+                println(" ")
             end
             displayLegend() = begin
                 print("    ")
                 for i in 1:g._size
-                    print("$(args["game_spot"]) $('A' + i - 1) ")
+                    # print("$(args["game_spot"]) $('A' + i - 1) ")
+                    print("$(args["game_space"])$('A' + i - 1) ")
                 end
                 println()
             end
             displayLegend()
             for i in 1:g._size
                 displayLine()
-                @printf(" %-2d |", i)
+                # @printf(" %-2d |", i)
+                @printf(" %-2d ", i)
                 for j in 1:g._size
                     if g._board[i, j] > 0
                         if (i, j) == g._last_move
-                            print("($(args["game_X"]))|")
+                            # print("($(args["game_X"]))|")
+                            print("($(args["game_X"]))")
                         else
-                            print(" $(args["game_X"]) |")
+                            # print(" $(args["game_X"]) |")
+                            print(" $(args["game_X"]) ")
                         end
                     elseif g._board[i, j] < 0
                         if (i, j) == g._last_move
-                            print("($(args["game_O"]))|")
+                            # print("($(args["game_O"]))|")
+                            print("($(args["game_O"]))")
                         else
-                            print(" $(args["game_O"]) |")
+                            # print(" $(args["game_O"]) |")
+                            print(" $(args["game_O"]) ")
                         end
                     else
-                        print(" $(args["game_spot"]) |")
+                        # print(" $(args["game_spot"]) |")
+                        print(" $(args["game_spot"]) ")
                     end
                 end
                 @printf(" %2d ", i)

@@ -38,6 +38,12 @@ function parse_commandline()
         "--game_spot"
         help = "empty spot"
         arg_type = String
+        # default = "  "
+        default = "・"
+
+        "--game_space"
+        help = "empty space"
+        arg_type = String
         default = "  "
 
         "--model_channels"
