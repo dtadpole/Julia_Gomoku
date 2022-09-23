@@ -187,9 +187,11 @@ function eval_run(eval_id::Int)
             @error "Error" exception = (e, catch_backtrace())
             exit(1)
         finally
+            # sleep before messaging
+            sleep(rand() + 1.0)
             @info repeat("-", 50)
             @info "Tally [$(i)] : [$(args["player_1"]) : $(player_1_wins)] vs [$(args["player_2"]) : $(player_2_wins)] , [$(draws) draws]"
-            sleep(1)
+            sleep(rand() + 1.0)
         end
     end
 
