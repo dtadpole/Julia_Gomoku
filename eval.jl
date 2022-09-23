@@ -188,7 +188,7 @@ function eval_run(eval_id::Int)
             exit(1)
         finally
             # sleep before messaging
-            sleep(rand() + 1.0)
+            sleep(rand() + 2.0)
             @info repeat("-", 50)
             @info "Tally [$(i)] : [$(args["player_1"]) : $(player_1_wins)] vs [$(args["player_2"]) : $(player_2_wins)] , [$(draws) draws]"
             sleep(rand() + 1.0)
