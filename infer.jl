@@ -31,7 +31,7 @@ function infer_playout(i::Int)
     experiences, game_init_turn, game_score = mcts_play_game(model_1, model_2)
 
     id_first, id_second = game_init_turn > 0 ? (id_1, id_2) : (id_2, id_1)
-    tk_first, tk_second = game_init_turn > 0 ? ("X", "O") : ("O", "X")
+    tk_first, tk_second = game_init_turn > 0 ? (args["game_X"], args["game_O"]) : (args["game_O"], args["game_X"])
 
     normalized_score = game_init_turn > 0 ? game_score : -game_score
 

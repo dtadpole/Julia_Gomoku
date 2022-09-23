@@ -18,6 +18,28 @@ function parse_commandline()
         arg_type = Bool
         default = true
 
+        "--game_X"
+        help = "X player"
+        arg_type = String
+        # default = "⚫"
+        # default = "🔴"
+        default = "🟠"
+        # default = "🟡"
+        # default = "🟤"
+
+        "--game_O"
+        help = "O player"
+        arg_type = String
+        # default = "⚪"
+        # default = "🔵"
+        default = "🟢"
+        # default = "🟣"
+
+        "--game_spot"
+        help = "empty spot"
+        arg_type = String
+        default = "  "
+
         "--model_channels"
         help = "model channels"
         arg_type = Int

@@ -152,14 +152,14 @@ mutable struct Game
             displayLine() = begin
                 print("    -")
                 for j in 1:g._size
-                    print(" - -")
+                    print(" $(args["game_spot"]) -")
                 end
                 println()
             end
             displayLegend() = begin
                 print("    ")
                 for i in 1:g._size
-                    @printf("  %c ", 'A' + i - 1)
+                    print("$(args["game_spot"]) $('A' + i - 1) ")
                 end
                 println()
             end
@@ -170,18 +170,18 @@ mutable struct Game
                 for j in 1:g._size
                     if g._board[i, j] > 0
                         if (i, j) == g._last_move
-                            print("(X)|")
+                            print("($(args["game_X"]))|")
                         else
-                            print(" X |")
+                            print(" $(args["game_X"]) |")
                         end
                     elseif g._board[i, j] < 0
                         if (i, j) == g._last_move
-                            print("(O)|")
+                            print("($(args["game_O"]))|")
                         else
-                            print(" O |")
+                            print(" $(args["game_O"]) |")
                         end
                     else
-                        print("   |")
+                        print(" $(args["game_spot"]) |")
                     end
                 end
                 @printf(" %2d ", i)

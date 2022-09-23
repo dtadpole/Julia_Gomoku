@@ -172,7 +172,7 @@ function eval_run(eval_id::Int)
             # use one temperature for a full game
             TEMPERATURE = args["mcts_temperature_mean"] + args["mcts_temperature_std"] * randn()
             @info repeat("-", 50)
-            @info "Evaluation Iteration [$(i)] : [$(args["player_1"]) -> X] vs [$(args["player_2"]) -> O] [$(round(TEMPERATURE, digits=2)),τ]"
+            @info "Evaluation Iteration [$(i)] : [$(args["player_1"]) -> $(args["game_X"])] vs [$(args["player_2"]) -> $(args["game_O"])] [$(round(TEMPERATURE, digits=2)),τ]"
             @info repeat("-", 50)
             game_turn = rand() > 0.5 ? 1.0 : -1.0
             score = eval_playout(player1_function, player2_function; turn=game_turn, τ=TEMPERATURE)
