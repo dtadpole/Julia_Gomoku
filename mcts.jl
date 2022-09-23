@@ -254,7 +254,16 @@ function mcts_play_game(model_1::Model, model_2::Model)
             # play
             prior_N = node._N
             while node._N < game.size()^2 * args["mcts_n_multiplier"]
-                node.travelBranch(args["mcts_depth"])
+                (() -> begin
+                    node.travelBranch(args["mcts_depth"])
+                end)()
+                # GC & reclaim CUDA memory
+                if mod(node._N, 100) == 0
+                    GC.gc(true)
+                    if args["model_cuda"] >= 0
+                        CUDA.reclaim()
+                    end
+                end
             end
             post_N = node._N
 
