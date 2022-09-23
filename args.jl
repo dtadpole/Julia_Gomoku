@@ -83,7 +83,7 @@ function parse_commandline()
         "--mcts_temperature_mean"
         help = "mcts temperature mean"
         arg_type = Float32
-        default = Float32(0.75)
+        default = Float32(0.8)
 
         "--mcts_temperature_std"
         help = "mcts temperature std"
