@@ -21,18 +21,18 @@ function parse_commandline()
         "--game_X"
         help = "X player"
         arg_type = String
-        # default = "⚫"
+        default = "⚫"
         # default = "🔴"
-        default = "🟠"
+        # default = "🟠"
         # default = "🟡"
         # default = "🟤"
 
         "--game_O"
         help = "O player"
         arg_type = String
-        # default = "⚪"
+        default = "⚪"
         # default = "🔵"
-        default = "🟢"
+        # default = "🟢"
         # default = "🟣"
 
         "--game_spot"
