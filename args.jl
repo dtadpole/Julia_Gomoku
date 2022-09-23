@@ -94,7 +94,7 @@ function parse_commandline()
         "--mcts_temperature_std"
         help = "mcts temperature std"
         arg_type = Float32
-        default = Float32(0.1)
+        default = Float32(0.15)
 
         "--mcts_noise_alpha"
         help = "mcts noise dirichlet alpha"
@@ -233,12 +233,12 @@ function parse_commandline()
         "--elo_below_avg_cutoff"
         help = "elo below average cutoff"
         arg_type = Int
-        default = 80
+        default = 60
 
         "--elo_below_main_cutoff"
         help = "elo below main cutoff"
         arg_type = Int
-        default = 100
+        default = 80
 
         "--elo_k_value"
         help = "elo k value"
