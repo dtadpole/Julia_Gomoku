@@ -149,6 +149,8 @@ mutable struct Game
 
         """Display the game board."""
         g.display = () -> begin
+            leftParentheses = "❨" # "❪" # "❨" # "⟮" # "﴾"
+            rightParentheses = "❩" # "❫" # "❩" # "⟯" # "﴿"
             displayLine() = begin
                 # print("    -")
                 print("       ")
@@ -176,7 +178,7 @@ mutable struct Game
                     if g._board[i, j] > 0
                         if (i, j) == g._last_move
                             # print("($(args["game_X"]))|")
-                            print("($(args["game_X"]))")
+                            print("$(leftParentheses)$(args["game_X"])$(rightParentheses)")
                         else
                             # print(" $(args["game_X"]) |")
                             print(" $(args["game_X"]) ")
@@ -184,7 +186,7 @@ mutable struct Game
                     elseif g._board[i, j] < 0
                         if (i, j) == g._last_move
                             # print("($(args["game_O"]))|")
-                            print("($(args["game_O"]))")
+                            print("$(leftParentheses)$(args["game_O"])$(rightParentheses)")
                         else
                             # print(" $(args["game_O"]) |")
                             print(" $(args["game_O"]) ")
