@@ -116,7 +116,7 @@ mutable struct Train
         """Train epoch"""
         function train_epoch(epoch::Int)
 
-            @info "Training epoch [$(epoch)] started [len=$(t._exps.length()), tot=$(t._exps.totalCount()), trn=$(t._exps.trainedBatch())] ..."
+            @info "Training epoch [$(epoch)] started [len=$(t._exps.length()), tot=$(t._exps.totalCount()), trn=$(t._exps.trainedBatch()) [$(round(t._exps.opt()[1].eta, digits=4)),η] ..."
 
             # start_time = time()
 
