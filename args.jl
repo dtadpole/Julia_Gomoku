@@ -99,7 +99,7 @@ function parse_commandline()
         "--mcts_noise_alpha"
         help = "mcts noise dirichlet alpha"
         arg_type = Float32
-        default = Float32(0.1) # AlphaZero: 0.03
+        default = Float32(0.05) # AlphaZero: 0.03
 
         "--mcts_noise_epsilon"
         help = "mcts noise epsilon"
