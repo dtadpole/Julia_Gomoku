@@ -102,7 +102,7 @@ mutable struct Train
                 @info repeat("-", 50)
                 @info "Loading Experiences from [$(exp_path)] ..."
                 t._exps.load(exp_path)
-                @info "Loaded Experiences [len=$(t._exps.length()), total=$(t._exps.totalCount()), trained=$(t._exps.trainedBatch())]"
+                @info "Loaded Experiences [len=$(t._exps.length()), stp=$(div(t._exps.totalCount(), 8)), trn=$(t._exps.trainedBatch())]"
             end
 
             # start experiences server
@@ -116,7 +116,7 @@ mutable struct Train
         """Train epoch"""
         function train_epoch(epoch::Int)
 
-            @info "Training epoch [$(epoch)] started [len=$(t._exps.length()), tot=$(t._exps.totalCount()), trn=$(t._exps.trainedBatch())] [$(round(t._exps.opt()[1].eta, digits=4)),η] ..."
+            @info "Training epoch [$(epoch)] started [len=$(t._exps.length()), stp=$(div(t._exps.totalCount(), 8)), trn=$(t._exps.trainedBatch())] [$(round(t._exps.opt()[1].eta, digits=4)),η] ..."
 
             # start_time = time()
 
@@ -314,7 +314,7 @@ mutable struct Train
 
             # save experiences
             exp_filepath = exp_filename(1)
-            @info "Save experiences [$(exp_filepath)] : [len=$(t._exps.length()), tot=$(t._exps.totalCount()), trn=$(t._exps.trainedBatch())]"
+            @info "Save experiences [$(exp_filepath)] : [len=$(t._exps.length()), stp=$(div(t._exps.totalCount(), 8)), trn=$(t._exps.trainedBatch())]"
             t._exps.save(exp_filepath)
 
             # print separator
@@ -384,7 +384,7 @@ mutable struct Train
 
                     else
 
-                        @info "Training is waiting for more experiences [len=$(t._exps.length()), tot=$(t._exps.totalCount()), trn=$(t._exps.trainedBatch())] ..."
+                        @info "Training is waiting for more experiences [len=$(t._exps.length()), stp=$(div(t._exps.totalCount(), 8)), trn=$(t._exps.trainedBatch())] ..."
 
                     end
 
