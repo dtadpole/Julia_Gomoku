@@ -1,6 +1,7 @@
 include("./args.jl")
 
 import YAML
+import Dates
 
 const _ELO_K_VALUE = args["elo_k_value"]
 const _ELO_INIT_RATING = 2000
@@ -152,12 +153,12 @@ mutable struct Elo
             # check if player is candidate
             if id ∈ e._candidatePlayers
                 delete!(e._candidatePlayers, id) # delete from candidate list
-                push!(e._log, "Player [$(id), $(e.rating(id))] removed from candidate.  $(e.playerInfo()["candidate"])")
+                push!(e._log, "[$(Dates.format(Dates.now(), "HH:MM:SS"))] Player [$(id), $(e.rating(id))] removed from candidate.  $(e.playerInfo()["candidate"])")
             end
             # check if player is active
             if id ∉ e._activePlayers
                 push!(e._activePlayers, id)
-                push!(e._log, "Player [$(id), $(e.rating(id))] added to active.  $(e.playerInfo()["active"])")
+                push!(e._log, "[$(Dates.format(Dates.now(), "HH:MM:SS"))] Player [$(id), $(e.rating(id))] added to active.  $(e.playerInfo()["active"])")
             end
         end
 
@@ -165,7 +166,7 @@ mutable struct Elo
         e.makeInactive = (id) -> begin
             if id ∈ e._activePlayers
                 delete!(e._activePlayers, id)
-                push!(e._log, "Player [$(id), $(e.rating(id))] removed from active.  $(e.playerInfo()["active"])")
+                push!(e._log, "[$(Dates.format(Dates.now(), "HH:MM:SS"))] Player [$(id), $(e.rating(id))] removed from active.  $(e.playerInfo()["active"])")
             end
         end
 
@@ -187,14 +188,14 @@ mutable struct Elo
         e.makeCandidate = (id) -> begin
             if id ∉ e._candidatePlayers
                 push!(e._candidatePlayers, id)
-                push!(e._log, "Player [$(id), $(e.rating(id))] added to candidate.  $(e.playerInfo()["candidate"])")
+                push!(e._log, "[$(Dates.format(Dates.now(), "HH:MM:SS"))] Player [$(id), $(e.rating(id))] added to candidate.  $(e.playerInfo()["candidate"])")
             end
         end
 
         """Clear candidate players"""
         e.clearCandidates = () -> begin
             if length(e._candidatePlayers) > 0
-                push!(e._log, "Candidate players cleared.  $(e.playerInfo()["candidate"]) => []")
+                push!(e._log, "[$(Dates.format(Dates.now(), "HH:MM:SS"))] Candidate players cleared.  $(e.playerInfo()["candidate"]) => []")
                 empty!(e._candidatePlayers)
             end
         end
