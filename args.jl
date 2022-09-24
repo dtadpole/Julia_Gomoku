@@ -99,7 +99,7 @@ function parse_commandline()
         "--mcts_noise_alpha"
         help = "mcts noise dirichlet alpha"
         arg_type = Float32
-        default = Float32(0.1) # AlphaZero: 0.03
+        default = Float32(0.05) # AlphaZero: 0.03
 
         "--mcts_noise_epsilon"
         help = "mcts noise epsilon"
@@ -129,7 +129,7 @@ function parse_commandline()
         "--train_kl_target"
         help = "train kl target"
         arg_type = Float32
-        default = Float32(0.03)
+        default = Float32(0.02)
 
         "--learning_rate"
         help = "learning rate"
@@ -238,7 +238,7 @@ function parse_commandline()
         "--elo_below_main_cutoff"
         help = "elo below main cutoff"
         arg_type = Int
-        default = 90
+        default = 100
 
         "--elo_k_value"
         help = "elo k value"
