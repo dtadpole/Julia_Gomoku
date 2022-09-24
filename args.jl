@@ -129,7 +129,7 @@ function parse_commandline()
         "--train_kl_target"
         help = "train kl target"
         arg_type = Float32
-        default = Float32(0.04)
+        default = Float32(0.03)
 
         "--learning_rate"
         help = "learning rate"
