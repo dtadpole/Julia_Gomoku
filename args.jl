@@ -71,6 +71,11 @@ function parse_commandline()
         arg_type = Int
         default = 2
 
+        "--mcts_dirichlet_multiplier"
+        help = "mcts play count multiplier"
+        arg_type = Int
+        default = 2
+
         "--mcts_cpuct"
         help = "mcts cpuct"
         arg_type = Float32

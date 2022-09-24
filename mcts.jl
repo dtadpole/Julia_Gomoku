@@ -120,7 +120,7 @@ mutable struct MctsNode
                 # dirichlet = node._dirichlet === nothing ? fill(0.0f0, node.size(), node.size()) : reshape(rand(node._dirichlet), node.size(), node.size())
                 # pi = (pi .* (1 - node._noise_epsilon) .+ dirichlet .* node._noise_epsilon) .* node._game.available_actions()
                 SIZE = node._game.size()
-                pn = reshape(pi, SIZE*SIZE) .* (SIZE*SIZE*args["mcts_n_multiplier"])
+                pn = reshape(pi, SIZE*SIZE) .* (SIZE*SIZE*args["mcts_dirichlet_multiplier"])
                 dirichlet = Dirichlet(pn)
                 pi = reshape(rand(dirichlet), (SIZE, SIZE)) .* node._game.available_actions()
                 v = Array(v)[1]
