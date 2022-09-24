@@ -68,13 +68,13 @@ function parse_commandline()
 
         "--mcts_n_multiplier"
         help = "mcts play count multiplier"
-        arg_type = Int
-        default = 2
+        arg_type = Float32
+        default = Float32(2.0)
 
         "--mcts_dirichlet_multiplier"
         help = "mcts play count multiplier"
-        arg_type = Int
-        default = 2
+        arg_type = Float32
+        default = Float32(1.5)
 
         "--mcts_cpuct"
         help = "mcts cpuct"
