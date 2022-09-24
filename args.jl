@@ -204,7 +204,12 @@ function parse_commandline()
         "--eval_playouts"
         help = "eval playout count"
         arg_type = Int
-        default = 12
+        default = 10
+
+        "--eval_net_win_ratio"
+        help = "eval net win ratio to declare a winner"
+        arg_type = Float32
+        default = Float32(0.4)
 
         "--eval_id"
         help = "eval id"
