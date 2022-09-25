@@ -108,6 +108,7 @@ mutable struct MctsNode
         node.children = () -> node._children
 
         function _calc_Pi_V()
+            SIZE = node._game.size()
             if node._Pi_V === nothing
                 state = node._game.state()
                 state, r = random_transform(state) # random transform
@@ -119,14 +120,15 @@ mutable struct MctsNode
                 # apply dirichlet noise to prior probabilities
                 # dirichlet = node._dirichlet === nothing ? fill(0.0f0, node.size(), node.size()) : reshape(rand(node._dirichlet), node.size(), node.size())
                 # pi = (pi .* (1 - node._noise_epsilon) .+ dirichlet .* node._noise_epsilon) .* node._game.available_actions()
-                SIZE = node._game.size()
                 pn = reshape(pi, SIZE*SIZE) .* (SIZE*SIZE*args["mcts_dirichlet_multiplier"])
-                dirichlet = Dirichlet(pn)
-                pi = reshape(rand(dirichlet), (SIZE, SIZE)) .* node._game.available_actions()
+                node._dirichlet = Dirichlet(pn)
                 v = Array(v)[1]
                 node._Pi_V = (pi, v)
             end
-            return node._Pi_V
+            pi_ = reshape(rand(node._dirichlet), (SIZE, SIZE)) .* node._game.available_actions()
+	    v_ = node._Pi_V[2]
+	    return pi_, v_
+            # return node._Pi_V
         end
 
         """Expand children"""
@@ -297,10 +299,11 @@ function mcts_play_game(model_1::Model, model_2::Model)
 
         # update mcts node opposite
         if node_opposite._children !== nothing && node_opposite._children[action] !== nothing
-            # node_opposite = node_opposite._children[action]
-            # node_opposite.clearParent()
+	    # DO Reuse !! Dirichlet noises are dynamically added each step
+            node_opposite = node_opposite._children[action]
+            node_opposite.clearParent()
 	    # Do NOT Reuse !!  always create new mcts tree, do not cache dirichlet noise
-            node_opposite = MctsNode(game, model_opposite; cpuct=args["mcts_cpuct"], gamma=args["mcts_gamma"], noise_epsilon=args["mcts_noise_epsilon"], dirichlet=dirichlet)
+            # node_opposite = MctsNode(game, model_opposite; cpuct=args["mcts_cpuct"], gamma=args["mcts_gamma"], noise_epsilon=args["mcts_noise_epsilon"], dirichlet=dirichlet)
         else
             node_opposite = MctsNode(game, model_opposite; cpuct=args["mcts_cpuct"], gamma=args["mcts_gamma"], noise_epsilon=args["mcts_noise_epsilon"], dirichlet=dirichlet)
         end
