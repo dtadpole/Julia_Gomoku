@@ -297,8 +297,10 @@ function mcts_play_game(model_1::Model, model_2::Model)
 
         # update mcts node opposite
         if node_opposite._children !== nothing && node_opposite._children[action] !== nothing
-            node_opposite = node_opposite._children[action]
-            node_opposite.clearParent()
+            # node_opposite = node_opposite._children[action]
+            # node_opposite.clearParent()
+	    # Do NOT Reuse !!  always create new mcts tree, do not cache dirichlet noise
+            node_opposite = MctsNode(game, model_opposite; cpuct=args["mcts_cpuct"], gamma=args["mcts_gamma"], noise_epsilon=args["mcts_noise_epsilon"], dirichlet=dirichlet)
         else
             node_opposite = MctsNode(game, model_opposite; cpuct=args["mcts_cpuct"], gamma=args["mcts_gamma"], noise_epsilon=args["mcts_noise_epsilon"], dirichlet=dirichlet)
         end
