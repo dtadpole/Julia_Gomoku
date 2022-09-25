@@ -367,7 +367,7 @@ mutable struct Train
                                     t._exps.addtrainedBatch(BATCH_NUM)
                                 end
                                 # GC & reclaim CUDA memory
-                                GC.gc(true)
+                                GC.gc(false)
                                 if args["model_cuda"] >= 0
                                     CUDA.reclaim()
                                 end
