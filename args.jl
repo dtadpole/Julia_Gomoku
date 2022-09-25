@@ -231,8 +231,8 @@ function parse_commandline()
         "--population_min"
         help = "population min size"
         arg_type = Int
-        range_tester = (x -> x >= 3)
-        default = 3
+        range_tester = (x -> x >= 2)
+        default = 2
 
         "--population_max"
         help = "population max size"
