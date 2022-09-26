@@ -96,6 +96,7 @@ mutable struct Model
                     x -> reshape(x, (channels * size * size, :)),
                     Dropout(0.5),
                     Dense(channels * size * size => size * size * 2, gelu),
+                    Dropout(0.5),
                     Dense(size * size * 2 => size * size),
                     x -> reshape(x, (size, size, :))
                     # x -> log.(x + 1e-8), # add log layer
