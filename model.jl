@@ -95,9 +95,7 @@ mutable struct Model
                     # Conv((1, 1), channels * 4 => div(channels, 2), gelu),
                     x -> reshape(x, (channels * size * size, :)),
                     Dropout(0.5),
-                    Dense(channels * size * size => size * size * 2, gelu),
-                    Dropout(0.5),
-                    Dense(size * size * 2 => size * size),
+                    Dense(channels * size * size => size * size),
                     x -> reshape(x, (size, size, :))
                     # x -> log.(x + 1e-8), # add log layer
                     # softmax # softmax layer applies to only dims=1
