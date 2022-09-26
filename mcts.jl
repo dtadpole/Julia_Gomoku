@@ -117,12 +117,12 @@ mutable struct MctsNode
                 end
                 pi, v = node._model.forward(reshape(state, (node.size(), node.size(), 1, 1)))
                 pi = revert_transform(reshape(Array(pi), (node.size(), node.size())), r) # revert transform
-                pn = reshape(pi, SIZE*SIZE) .* (SIZE*SIZE*args["mcts_dirichlet_multiplier"])
-                node._dirichlet = Dirichlet(pn .+ 1e-6)
+                # pn = reshape(pi, SIZE*SIZE) .* (SIZE*SIZE*args["mcts_dirichlet_multiplier"])
+                # node._dirichlet = Dirichlet(pn .+ 1e-6)
                 # apply dirichlet noise to prior probabilities
-                # dirichlet = node._dirichlet === nothing ? fill(0.0f0, node.size(), node.size()) : reshape(rand(node._dirichlet), node.size(), node.size())
-                # pi = (pi .* (1 - node._noise_epsilon) .+ dirichlet .* node._noise_epsilon) .* node._game.available_actions()
-                pi = pi .* node._game.available_actions()
+                dirichlet = node._dirichlet === nothing ? fill(0.0f0, node.size(), node.size()) : reshape(rand(node._dirichlet), node.size(), node.size())
+                pi = (pi .* (1 - node._noise_epsilon) .+ dirichlet .* node._noise_epsilon) .* node._game.available_actions()
+                # pi = pi .* node._game.available_actions()
                 v = Array(v)[1]
                 node._Pi_V = (pi, v)
             end
@@ -161,8 +161,8 @@ mutable struct MctsNode
             pi_ = reshape(rand(node._dirichlet), (SIZE, SIZE)) .* node._game.available_actions()
             for i in 1:node.size(), j in 1:node.size()
                 if node._children[i, j] !== nothing
-                    values[i, j] = node._children[i, j]._Q + node._cpuct * pi_[i, j] * sqrt(node._N) / (1 + node._children[i, j]._N)
-                    # values[i, j] = node._children[i, j]._Q + node._cpuct * node._children[i, j]._P * sqrt(node._N) / (1 + node._children[i, j]._N)
+                    # values[i, j] = node._children[i, j]._Q + node._cpuct * pi_[i, j] * sqrt(node._N) / (1 + node._children[i, j]._N)
+                    values[i, j] = node._children[i, j]._Q + node._cpuct * node._children[i, j]._P * sqrt(node._N) / (1 + node._children[i, j]._N)
                 end
             end
             return values
