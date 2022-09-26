@@ -86,10 +86,10 @@ mutable struct Model
 
         """Model"""
         m._model = Chain(
-            Conv((3, 3), 1 => channels, relu; pad=(1, 1)),
-            Conv((3, 3), channels => channels, relu; pad=(1, 1)),
-            Conv((3, 3), channels => channels, relu; pad=(1, 1)),
-            Conv((3, 3), channels => channels, relu; pad=(1, 1)),
+            Conv((3, 3), 1 => channels, gelu; pad=(1, 1)),
+            Conv((3, 3), channels => channels, gelu; pad=(1, 1)),
+            Conv((3, 3), channels => channels, gelu; pad=(1, 1)),
+            Conv((3, 3), channels => channels, gelu; pad=(1, 1)),
             Split(
                 Chain(
                     # Conv((1, 1), channels * 4 => div(channels, 2), gelu),
