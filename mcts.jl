@@ -117,18 +117,19 @@ mutable struct MctsNode
                 end
                 pi, v = node._model.forward(reshape(state, (node.size(), node.size(), 1, 1)))
                 pi = revert_transform(reshape(Array(pi), (node.size(), node.size())), r) # revert transform
+                pn = reshape(pi, SIZE*SIZE) .* (SIZE*SIZE*args["mcts_dirichlet_multiplier"])
+                node._dirichlet = Dirichlet(pn)
                 # apply dirichlet noise to prior probabilities
                 # dirichlet = node._dirichlet === nothing ? fill(0.0f0, node.size(), node.size()) : reshape(rand(node._dirichlet), node.size(), node.size())
                 # pi = (pi .* (1 - node._noise_epsilon) .+ dirichlet .* node._noise_epsilon) .* node._game.available_actions()
-                pn = reshape(pi, SIZE*SIZE) .* (SIZE*SIZE*args["mcts_dirichlet_multiplier"])
-                node._dirichlet = Dirichlet(pn)
+                pi = pi .* node._game.available_actions()
                 v = Array(v)[1]
                 node._Pi_V = (pi, v)
             end
-            pi_ = reshape(rand(node._dirichlet), (SIZE, SIZE)) .* node._game.available_actions()
-	    v_ = node._Pi_V[2]
-	    return pi_, v_
-            # return node._Pi_V
+            # pi_ = reshape(rand(node._dirichlet), (SIZE, SIZE)) .* node._game.available_actions()
+	    # v_ = node._Pi_V[2]
+	    # return pi_, v_
+            return node._Pi_V
         end
 
         """Expand children"""
@@ -136,7 +137,8 @@ mutable struct MctsNode
             if node._game.is_over()
                 error("Cannot expand children - game is over")
             end
-            pi, _ = _calc_Pi_V()
+	    _calc_Pi_V()
+            pi, _ = node._Pi_V
             node._children = Array{Union{MctsNode,Nothing},2}(nothing, node.size(), node.size())
             for i = 1:node.size(), j = 1:node.size()
                 if pi[i, j] > 0.0
@@ -148,19 +150,24 @@ mutable struct MctsNode
         end
 
         """Node Value : Q(S,a) + cpuct * P(S,a) * sqrt(sum(N(S,x) for x in siblings)) / (1 + N(S,a))"""
-        node.nodeValue = () -> node._Q + node._cpuct * node._P * sqrt(node._parent._N) / (1 + node._N)
+        node.nodeValue = () -> begin
+	    node._Q + node._cpuct * node._P * sqrt(node._parent._N) / (1 + node._N)
+	end
 
         """Children Node Value : Q(S,a) + cpuct * P(S,a) * sqrt(sum(N(S,x) for x in siblings)) / (1 + N(S,a))"""
         node.childrenValues = () -> begin
             if node._children === nothing
                 error("Cannot get children values - children not expanded")
             end
-            values = fill(-Inf32, node.size(), node.size())
-            # dirichlet = node._dirichlet === nothing ? fill(0.0f0, node.size(), node.size()) : reshape(rand(node._dirichlet), node.size(), node.size())
+	    SIZE = node.size()
+            values = fill(-Inf32, SIZE, SIZE)
+            # pn = reshape(pi, SIZE*SIZE) .* (SIZE*SIZE*args["mcts_dirichlet_multiplier"])
+            # dirichlet = Dirichlet(pn)
+            pi_ = reshape(rand(node._dirichlet), (SIZE, SIZE)) .* node._game.available_actions()
             for i in 1:node.size(), j in 1:node.size()
                 if node._children[i, j] !== nothing
-                    # values[i, j] = node._children[i, j]._Q + node._cpuct * (node._children[i, j]._P * (1 - node._noise_epsilon) + dirichlet[i, j] * node._noise_epsilon) * sqrt(node._N) / (1 + node._children[i, j]._N)
-                    values[i, j] = node._children[i, j]._Q + node._cpuct * node._children[i, j]._P * sqrt(node._N) / (1 + node._children[i, j]._N)
+                    values[i, j] = node._children[i, j]._Q + node._cpuct * pi_[i, j] * sqrt(node._N) / (1 + node._children[i, j]._N)
+                    # values[i, j] = node._children[i, j]._Q + node._cpuct * node._children[i, j]._P * sqrt(node._N) / (1 + node._children[i, j]._N)
                 end
             end
             return values
