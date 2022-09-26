@@ -118,7 +118,7 @@ mutable struct MctsNode
                 pi, v = node._model.forward(reshape(state, (node.size(), node.size(), 1, 1)))
                 pi = revert_transform(reshape(Array(pi), (node.size(), node.size())), r) # revert transform
                 pn = reshape(pi, SIZE*SIZE) .* (SIZE*SIZE*args["mcts_dirichlet_multiplier"])
-                node._dirichlet = Dirichlet(pn)
+                node._dirichlet = Dirichlet(pn .+ 1e-6)
                 # apply dirichlet noise to prior probabilities
                 # dirichlet = node._dirichlet === nothing ? fill(0.0f0, node.size(), node.size()) : reshape(rand(node._dirichlet), node.size(), node.size())
                 # pi = (pi .* (1 - node._noise_epsilon) .+ dirichlet .* node._noise_epsilon) .* node._game.available_actions()
@@ -126,9 +126,6 @@ mutable struct MctsNode
                 v = Array(v)[1]
                 node._Pi_V = (pi, v)
             end
-            # pi_ = reshape(rand(node._dirichlet), (SIZE, SIZE)) .* node._game.available_actions()
-	    # v_ = node._Pi_V[2]
-	    # return pi_, v_
             return node._Pi_V
         end
 
