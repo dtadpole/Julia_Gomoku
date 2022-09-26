@@ -49,7 +49,7 @@ function parse_commandline()
         "--model_channels"
         help = "model channels"
         arg_type = Int
-        default = 64
+        default = 32
 
         "--model_cuda"
         help = "model cuda number"
