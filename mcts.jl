@@ -161,8 +161,6 @@ mutable struct MctsNode
             end
 	    SIZE = node.size()
             values = fill(-Inf32, SIZE, SIZE)
-            # pn = reshape(pi, SIZE*SIZE) .* (SIZE*SIZE*args["mcts_dirichlet_multiplier"])
-            # dirichlet = Dirichlet(pn)
             pi_ = reshape(rand(node._dirichlet), (SIZE, SIZE)) .* node._game.available_actions()
             for i in 1:node.size(), j in 1:node.size()
                 if node._children[i, j] !== nothing
